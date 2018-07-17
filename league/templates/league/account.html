@@ -60,7 +60,7 @@ return false;};
     {% if user.profile.country %}
     <img   src="{{user.profile.country.flag}}">
     {% endif %}
-     {{user.username}} infos
+     {{user.username}}'s info
      {% if request.user == user %}
       <a href="{% url 'league:profile_update' user.profile.pk %}"><button class="btn btn-default pull-right">{% bootstrap_icon 'wrench' %} Edit </button></a>
      {% endif %}
@@ -108,7 +108,7 @@ return false;};
 
 {% if players %}
 <div class="panel panel-default">
-  <div class="panel-heading"><h4>{{user.username}} results of passed and open leagues</h4></div>
+  <div class="panel-heading"><h4>{{user.username}}'s results of past and open leagues</h4></div>
 <div class="panel-body">
 <div class="col-md-6">
 <ul class="nav nav-tabs">
@@ -202,7 +202,7 @@ return false;};
 
 
 <div class="panel panel-default">
-<div class="panel-heading clearfix"><h3>{{user}} Games
+<div class="panel-heading clearfix"><h3>{{user}}'s Games
 
   <a href= "\league\all_sgf\{{user.pk}}">
     <button class="btn btn-default btn-sm pull-right">Download all games</button>
