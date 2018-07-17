@@ -18,11 +18,17 @@ class TournamentForm(forms.ModelForm):
             'is_public',
             'use_calendar',
             'description',
+            'ppwin',
+            'pploss',
+            'event_type',
         ]
         widgets = {
             'name': forms.TextInput(),
             'begin_time': forms.SelectDateWidget(),
             'end_time': forms.SelectDateWidget(),
+            'ppwin': forms.HiddenInput(),
+            'pploss': forms.HiddenInput(),
+            'event_type': forms.HiddenInput(),
         }
 
 class TournamentAboutForm(ModelForm):
@@ -45,3 +51,8 @@ class RoundForm(ModelForm):
     class Meta:
         model = Round
         fields = ['name']
+
+class ForfeitForm(forms.Form):
+    winner = forms.IntegerField(label='user_id')
+    looser = forms.IntegerField(label='user_id')
+    next = forms.CharField(label='next', widget=forms.HiddenInput(), required=False)

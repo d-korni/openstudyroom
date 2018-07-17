@@ -653,6 +653,32 @@ def scrap_list_up(request, profile_id):
                     return HttpResponseRedirect(reverse('league:scrap_list'))
     raise Http404("What are you doing here ?")
 
+def discord_api(request):
+    """ API to feed the discord bot"""
+    uids = request.GET.getlist('uids', '{}')
+    discord_users = DiscordUser.objects.filter(uid__in=uids).select_related('user__profile')
+    out = {}
+    for u in discord_users:
+        out[u.uid] = {
+            'osr_username': u.user.username,
+            'timezone': u.user.profile.timezone,
+            'country': u.user.profile.country.name,
+        }
+        if u.user.profile.bio is not None:
+            out[u.uid].update({'bio': u.user.profile.bio._get_raw()})
+        if u.user.profile.kgs_username:
+            out[u.uid].update({
+                'kgs_username': u.user.profile.kgs_username,
+                'kgs_rank': u.user.profile.kgs_rank,
+            })
+        if u.user.profile.ogs_id > 0:
+            out[u.uid].update({
+                'ogs_username': u.user.profile.ogs_username,
+                'ogs_rank': u.user.profile.ogs_rank,
+                'ogs_id': u.user.profile.ogs_id,
+            })
+
+    return HttpResponse(json.dumps(out), content_type="application/json")
 
 #################################################################
 ####    ADMINS views    #########################################
