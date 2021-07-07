@@ -28,7 +28,7 @@ def kgs_connect():
     }
     formatted_message = json.dumps(message)
     for _ in range(10):
-        response = requests.post(url, formatted_message)
+        response = requests.post(url, formatted_message, timeout=10)
         time.sleep(3)
         if response.status_code == 200:
             break
@@ -36,13 +36,13 @@ def kgs_connect():
         return False
     cookies = response.cookies
     for _ in range(10):
-        r = requests.get(url, cookies=cookies)
+        r = requests.get(url, cookies=cookies, timeout=10)
         time.sleep(3)
         if r.status_code == 200:
             break
     if response.status_code != 200:
         return False
-    requests.post(url, json.dumps({"type": "LOGOUT"}), cookies=cookies)
+    requests.post(url, json.dumps({"type": "LOGOUT"}), cookies=cookies, timeout=10)
     return r
 
 def check_byoyomi(s):
@@ -57,6 +57,7 @@ def check_byoyomi(s):
         t = int(s[a + 1:b])
     return n >= 3 and t >= 30
 
+
 def get_byoyomi(s):
     '''Parse a string '3x30 byo-yomi' and return a couple (3,30)'''
     if s.find('byo-yomi') == -1:
@@ -67,6 +68,7 @@ def get_byoyomi(s):
         b = s.find(' ')
         t = int(s[a + 1:b])
     return {'n': n, 't': t}
+
 
 def extract_players_from_url(url):
     '''get players name from a kgs archive url
@@ -90,6 +92,7 @@ def extract_players_from_url(url):
                 black = url[w_end + 1: b_end]
 
         return {'white': white, 'black': black}  # if unproper url, black is not define
+    return None
 
 
 def ask_kgs(kgs_username, year, month):
@@ -147,20 +150,35 @@ def parse_sgf_string(sgf_string):
         'SZ': 'board_size',
         'TM': 'time',
         'OT': 'byo',
-        'PC': 'place'
+        'PC': 'place',
+        'RU':'rules'
     }
-    out = {}
+    # default values:
+    out = {
+        'date': None,
+        'komi': 0,
+        'time': 0,
+        'handicap': 0,
+        'board_size': 19,
+    }
     for key in prop:
         p = sgf_string.find(key + '[')  # find the key and get the index
         if p != -1:
             q = sgf_string.find(']', p)  # find the end of the tag
             out[prop[key]] = sgf_string[p + 3:q]
-    # convert string date to date object
 
-    if 'date' in out:
+    # Format date, komi and time in proper type
+    if out['date'] is not None:
         out['date'] = datetime.datetime.strptime(out['date'], "%Y-%m-%d")
-    else:
-        out['date'] = None
+    out['komi'] = float(out['komi'])
+    out['time'] = int(out['time'])
+    out['board_size'] = int(out['board_size'])
+    out['handicap'] = int(out['handicap'])
+
+    # Set handicap to 1 if handicap is 0 and komi is 0.5: https://github.com/climu/openstudyroom/issues/364
+    if out['handicap'] == 0 and out['komi'] == 0.5:
+        out['handicap'] = 1
+
     # counting the number of moves. Note that there could be a +-1 diff, but we don't really care
     out['number_moves'] = 2 * sgf_string.count(';B[')
     # We create a unique string based on exact time (ms) 5 first black moves where played.
@@ -194,3 +212,15 @@ def quick_send_mail(user, mail):
            [address.email],
            fail_silently=False,
         )
+
+def parse_ogs_iso8601_datetime(dt_str):
+    '''turn '2019-04-30T14:41:18.183258-04:00' into datetime.datetime(2019, 4, 30, 18, 41, 18, 183258)
+    OGS sends us these and we want to compare to a TZ-unaware datetime'''
+    no_tz = dt_str[:-6]
+    tz_str = dt_str[-6:]
+    offset_minutes = int(tz_str[1:3]) * 60 + int(tz_str[4:6])
+    if tz_str[0] == '-':
+        offset_minutes = -offset_minutes
+    dt = datetime.datetime.strptime(no_tz, '%Y-%m-%dT%H:%M:%S.%f')
+    dt -= datetime.timedelta(minutes=offset_minutes)
+    return dt

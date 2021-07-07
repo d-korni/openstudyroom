@@ -31,13 +31,9 @@ class Tournament(LeagueEvent):
         'league.User',
         null=True,
         blank=True,
-        related_name="won_tournament"
+        related_name="won_tournament",
+        on_delete=models.CASCADE
     )
-
-    def is_admin(self, user):
-        return user.is_authenticated() and\
-            user.is_league_admin() or\
-            user.groups.filter(name='tournament_master').exists()
 
     def last_player_order(self):
         last_player = TournamentPlayer.objects.filter(event=self).order_by('order').last()
@@ -70,6 +66,7 @@ class Tournament(LeagueEvent):
             return out
 
         settings = sgf.check_event_settings(self)
+
         if not settings['valid']:
             out.update({'message': settings['message']})
         elif self.stage == 1:
@@ -157,7 +154,7 @@ class TournamentGroup(Division):
 
 class Bracket(models.Model):
     name = models.TextField(max_length=20, blank=True, null=True, default="")
-    tournament = models.ForeignKey(Tournament, null=True)
+    tournament = models.ForeignKey(Tournament, null=True, on_delete=models.CASCADE)
     order = models.PositiveSmallIntegerField(default=0)
 
     def __str__(self):
@@ -185,7 +182,7 @@ class Bracket(models.Model):
 class Round(models.Model):
     """A tournament round."""
     name = models.TextField(max_length=20, blank=True, null=True, default="")
-    bracket = models.ForeignKey(Bracket, blank=True, null=True)
+    bracket = models.ForeignKey(Bracket, blank=True, null=True, on_delete=models.CASCADE)
     order = models.PositiveSmallIntegerField()
 
     def __str__(self):
@@ -222,16 +219,25 @@ class Match(models.Model):
         blank=True,
         null=True,
         on_delete=models.SET_NULL)
-    bracket = models.ForeignKey(Bracket, blank=True, null=True)
-    round = models.ForeignKey(Round, blank=True, null=True)
-    player_1 = models.ForeignKey(TournamentPlayer, blank=True, null=True, related_name="player_1_match")
-    player_2 = models.ForeignKey(TournamentPlayer, blank=True, null=True, related_name="player_2_match")
-    winner = models.ForeignKey(TournamentPlayer, blank=True, null=True, related_name="winner_match")
+    bracket = models.ForeignKey(Bracket, blank=True, null=True, on_delete=models.CASCADE)
+    round = models.ForeignKey(Round, blank=True, null=True, on_delete=models.CASCADE)
+    player_1 = models.ForeignKey(TournamentPlayer, blank=True, null=True, related_name="player_1_match", on_delete=models.CASCADE)
+    player_2 = models.ForeignKey(TournamentPlayer, blank=True, null=True, related_name="player_2_match", on_delete=models.CASCADE)
+    winner = models.ForeignKey(TournamentPlayer, blank=True, null=True, related_name="winner_match", on_delete=models.CASCADE)
     order = models.PositiveSmallIntegerField()
+
+    def __str__(self):
+        out = str(self.round) + ": match " + str(self.order)
+        if self.player_1:
+            out += " " + self.player_1.user.username
+        if self.player_2:
+            out += " " + self.player_2.user.username
+
+        return out
 
 class TournamentEvent(PublicEvent):
     """ Public event related to a tournament."""
-    tournament = models.ForeignKey(Tournament)
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE )
 
     def can_edit(self, user):
         return self.tournament.is_admin(user)

@@ -43,7 +43,6 @@ return false;};
 </div>
 {%endblock%}
 {% block content %}
-{% language 'en' %}
 {% get_meijin as meijin %}
 
 {% include 'league/includes/user_nav.html' with active='league' %}
@@ -67,14 +66,9 @@ return false;};
   </h4>
 </div>
 <div class="panel-body">
-
     <div class="row">
         {% include 'league/includes/user_infos.html' %}
-
     </div>
-
-
-
 </div>
 </div>
 
@@ -145,56 +139,57 @@ return false;};
   </div>
   {% for event in open_events %}
   {% if event.is_in %}
-{% with player=event.this_player %}
-  <div id="{{event.pk}}" class="tab-pane fade ">
-    <table id='{{event.pk}}-opponents-table' class=' table table-hover table-condensed'  >
-       <thead>
-         <tr>
-           <th>Rank</th>
-           <th>Player</th>
-           <th>score</th>
-           <th> {{user.profile.kgs_username}}'s results</th>
+  {% with player=event.this_player %}
+    <div id="{{event.pk}}" class="tab-pane fade ">
+      <table id='{{event.pk}}-opponents-table' class=' table table-hover table-condensed'  >
+        <thead>
+            <tr>
+            <th>Rank</th>
+            <th>Player</th>
+            <th>score</th>
+            <th> {{user.profile.kgs_username}}'s results</th>
+            </tr>
         </thead>
         <tbody>
-      {% with player.get_results as results %}
-      {% for opponent in event.results %}
-      {% if opponent == player %}
-      <tr class="info">
-        {%else%}
-        <tr>
-            {%endif%}
-        <td>{{forloop.counter}}</td>
-        <td>{{opponent.user | user_link:meijin}}</td>
-        <td>{{opponent.score}}
-        <td>
-          {% if opponent.user.pk in results %}
-          {% html_one_player_result%}
-          {% endif %}
-          </td>
-
-      </tr>
-{%endfor%}
-      {% endwith %}
-      {% endwith %}
-  </tbody>
-  </table>
-  </div>
+        {% with player.get_results as results %}
+        {% for opponent in event.results %}
+          {% if opponent == player %}
+          <tr class="info">
+          {%else%}
+          <tr>
+          {%endif%}
+            <td>{{forloop.counter}}</td>
+            <td>{{opponent.user | user_link:meijin}}</td>
+            <td>{{opponent.score}}
+            <td>
+              {% if opponent.user.pk in results %}
+              {% html_one_player_result%}
+              {% endif %}
+            </td>
+          </tr>
+        {%endfor%}
+        {% endwith %}
+        </tbody>
+      </table>
+    </div>
+  {% endwith %}
   {%endif%}
-    {%endfor%}
+  {%endfor%}
 </div>
 </div>
+
 <div class="col-md-6">
   <div style="max-height:50%;">
-  <canvas id="gamesChart" height="100%" ></canvas>
-</div>
-<hr />
-<div style="max-height:50%;">
-{% if request.user.is_authenticated %}
-  {% include 'league/includes/vs.html' %}
-  {% endif %}
+    <canvas id="gamesChart" height="100%" ></canvas>
+  </div>
+  <hr />
+  <div style="max-height:50%;">
+    {% if request.user.is_authenticated %}
+    {% include 'league/includes/vs.html' %}
+    {% endif %}
+  </div>
 </div>
 
-</div>
 </div>
 </div>
 
@@ -202,47 +197,41 @@ return false;};
 
 
 <div class="panel panel-default">
-<div class="panel-heading clearfix"><h3>{{user}} Games
-
-  <a href= "\league\all_sgf\{{user.pk}}">
-    <button class="btn btn-default btn-sm pull-right">Download all games</button>
-  </a>
-
-</h3>
-</div>
-  {% if sgfs is None %}
-  <div class="panel-body">
-    {{user}} didn't play any league game yet.
-  {% else %}
-<div class ="row">
-<div class="col-md-4">
-  <div id ="game_infos">
-</div>
-
-{% include "league/includes/games.html" with sgfs=sgfs %}
-</div>
-
-<div class="col-md-8">
-
-    <div id="player">
-      <div class="alert alert-info">
-      Click a game result to see it.
-    </div>
+  <div class="panel-heading clearfix"><h3>{{user}} Games
+    <a href= "\league\all_sgf\{{user.pk}}">
+      <button class="btn btn-default btn-sm pull-right">Download all games</button>
+    </a>
   </div>
-</div>
-</div>
-{%endif%}
-</div>
+  {% if sgfs is None %}
+    <div class="panel-body">
+      {{user}} didn't play any league game yet.
+    </div>
+  {% else %}
+    <div class ="row">
+    <div class="col-md-4">
+    {% include "league/includes/games.html" with sgfs=sgfs %}
+    </div>
+    <div class="col-md-8">
+      <div id ="game_infos"></div>
+      <div id="player">
+        <div class="alert alert-info">
+          Click a game result to see it.
+        </div>
+      </div>
+    </div>
+  {%endif%}
 </div>
 
 
-{%endlanguage%}
 {% endblock %}
 
 {% block extra_js %}
+{% get_current_language as LANGUAGE_CODE %}
+
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs/dt-1.10.16/datatables.min.css"/>
 <script type="text/javascript" src="https://cdn.datatables.net/v/bs/dt-1.10.16/datatables.min.js"></script>
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.23.0/moment.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.23.0/locale/{{LANGUAGE_CODE}}.js"></script>
 <script type="text/javascript" src="https://cdn.datatables.net/plug-ins/1.10.13/dataRender/datetime.js"></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js'></script>
 <script src="{% static 'stats/stats.js' %}"></script>
@@ -251,7 +240,7 @@ $(document).ready(function() {
   $('#game-table').DataTable({"bLengthChange": false ,"dom":'<"H"lr>ft<"F"ip>',
   "columnDefs": [ {
     targets: 0,
-    render: $.fn.dataTable.render.moment( 'MMM DD, YYYY','MMM DD, YYYY' )
+    render: $.fn.dataTable.render.moment( 'YYYY-MM-DD','L', '{{LANGUAGE_CODE}}' )
   } ],
   "order": [[ 0, "desc" ]]});
   $('#archive-table').DataTable({});

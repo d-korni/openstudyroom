@@ -31,7 +31,6 @@ return false;};
 </script>
 {% endblock %}
 {% block content %}
-{% language 'en' %}
 
 <ul class="nav nav-tabs">
   <li ><a href="{% url 'league:archives' %}">Archives</a></li>
@@ -44,75 +43,25 @@ return false;};
       {% if ev.community %}
       ({{ev.community.slug}})
       {% endif %}
-      {{ev}}
+      {% if ev.is_primary %}
+        <strong>
+      {% endif %}
+      {{ev.name}}
+      {% if ev.is_primary %}
+      </strong>
+      {% endif %}
     </a>
   </li>
   {% endfor %}
-  <li class="pull-right"><a href="{% url 'league:scrap_list' %}">Scrap list</a></li>
+  <li class="pull-right"><a href="{% url 'league:scrap_list' %}">Scrape list</a></li>
   </ul>
 {% include 'league/includes/league_nav.html' with active='games' %}
-<div class="well"> This table shows all games that have been played in the {{event.name}}</div>
 
-<div class ="row">
-<div  class="col-md-4">
-  <div id ="game_infos">
-    {% if sgf %}
-  {% include "league/includes/game_info.html"  %}
-    {% endif %}
-</div>
-<div class="panel panel-default">
-<div class="panel-heading">Games from {{event}}</div>
 
-{% include "league/includes/games.html" with sgfs=sgfs %}
-
-</div>
-</div>
-
-<div class="col-md-8">
-  {% if sgf %}
-  <div id="player" data-wgo="{{ sgf.sgf_text | prepare_sgf}}" >
-    </div>
-    {% else %}
-    <div id="player">
-      <div class="alert alert-info">
-      Click a game result to see it.
-    </div>
-
-    </div>
-  {% endif %}
-
-  </div>
-</div>
-
-  {%endlanguage%}
+{% include "league/includes/game_table_view.html" with event=event %}
 {% endblock %}
 
 {% block extra_js %}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs/dt-1.10.16/datatables.min.css"/>
-<script type="text/javascript" src="https://cdn.datatables.net/v/bs/dt-1.10.16/datatables.min.js"></script>
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
-<script type="text/javascript" src="https://cdn.datatables.net/plug-ins/1.10.13/dataRender/datetime.js"></script>
-<script type="text/javascript">
-$(document).ready(function() {
-$('#game-table').DataTable({
-  "bLengthChange": false ,"dom":'<"H"lr>ft<"F"ip>',
-
-  "columnDefs": [ {
-    targets: 0,
-    render: $.fn.dataTable.render.moment( 'MMM DD, YYYY','MMM DD, YYYY' )
-  } ],
-  "order": [[ 0, "desc" ]]
-});
-} );
-</script>
-{% if event.is_open %}
-<script type="text/javascript" src="{% static 'jquery.countdown/jquery.countdown.min.js' %}"></script>
-<script type="text/javascript">
-var end = Date.now() + {{event.remaining_sec}};
-$("#countdown").countdown(end,function(event) {
-    $(this).html(event.strftime('League ends in %D day%!D %H:%M:%S'));
-  });
-</script>
-
-{% endif %}
+{% get_current_language as LANGUAGE_CODE %}
+{% include "league/includes/sgrfs_datatable.html" with sgfs_data_json=sgfs_data_json %}
 {% endblock %}

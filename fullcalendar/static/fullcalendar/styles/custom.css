@@ -1,0 +1,210 @@
+:root {
+  --selection-bg-color:rgba(0, 0, 0, 0.1);
+  --selection-border-color:rgba(0, 0, 0, 0);
+
+  --available-color:  rgba(80, 160, 245, 0.2);
+  --available-dot-color:  rgba(80, 160, 245, 0.2);
+  --available-list-color:  rgba(80, 160, 245, 0.7);
+
+  --user-available-color:rgba(227, 132, 113, 0.2);
+  --user-available-text-color:rgba(197, 117, 101, 0.644);
+  --user-available-dot-color:rgba(227, 132, 113, 0.2);
+  --user-available-list-color:rgba(227, 132, 113, 0.568);
+  --hover-user-available-color:rgba(227, 132, 113, 0.308);
+
+  --appointment-color: rgb(0, 159, 175);
+  --appointment-border-color: rgb(18, 132, 143);
+  --appointment-text-color: rgb(255, 248, 227);
+
+  --user-appointment-color: rgb(92, 201, 211);
+  --user-appointment-border-color: rgb(37, 151, 161);
+  --user-appointment-hover-color: rgb(149, 229, 236);
+  --user-appointment-text-color: rgb(22, 111, 119);
+
+  --request-color: rgb(223, 139, 71);
+  --request-border-color: rgb(192, 119, 42);
+  --request-hover-color: rgb(240, 168, 110);
+  --request-text-color: #fff;
+
+  --user-request-color: rgb(228, 190, 120);
+  --user-request-border-color: rgba(199, 147, 51, 0.75);
+  --user-request-hover-color: rgb(245, 220, 174);
+  --user-request-text-color: rgb(167, 103, 35);
+}
+
+.game-request-event-user,
+.game-request-event,
+.game-appointment-event-user  {
+  cursor: pointer !important;
+}
+
+.fc-event-mirror {
+  background-color: var(--selection-bg-color) !important;
+  border-color: var(--selection-border-color) !important;
+}
+.fc-event-mirror .fc-event-main {
+  color: #000;
+}
+
+/* Availability */
+.user-available-event:not(tr) {
+  background-color: var(--user-available-color) !important;
+  border-color: var(--user-available-color) !important;
+}
+.user-available-event .fc-list-event-dot {
+  border-color: var(--user-available-dot-color) !important;
+}
+.user-available-event .fc-event-title {
+  color: var(--user-available-text-color) !important;
+}
+.user-available-event .fc-list-event-title {
+  color: var(--user-available-text-color) !important;
+}
+a.user-available-event:hover {
+  background-color: var(--hover-user-available-color) !important;
+  border-color: var(--hover-user-available-color) !important;
+}
+
+.opponents-available-event .fc-event-title {
+  color: rgb(95, 158, 177) !important;
+  font-weight: 400;
+}
+.opponents-available-event:not(tr) {
+  background-color: var(--available-color) !important;
+  border-color: var(--available-color) !important;
+}
+.opponents-available-event .fc-list-event-title {
+  color: var(--available-list-color);
+}
+.opponents-available-event .fc-list-event-dot {
+  border-color: var(--available-dot-color) !important;
+}
+
+/* Game request */
+.game-request-event .fc-list-event-dot {
+  border-color: var(--request-color) !important;
+}
+.game-request-event .fc-event-title {
+  color: var(--request-text-color) !important;
+}
+.game-request-event .fc-list-event-title a {
+  color: var(--user-request-text-color) !important;
+}
+.game-request-event:not(tr) {
+  border-color: var(--request-border-color) !important;
+  background-color: var(--request-color) !important;
+}
+.game-request-event:hover:not(tr) {
+  border-color: var(--request-border-color) !important;
+  background-color: var(--request-hover-color) !important;
+}
+.game-request-event-user .fc-event-title {
+  color: var(--user-request-text-color) !important;
+}
+.game-request-event-user .fc-list-event-dot {
+  border-color: var(--user-request-color) !important;
+}
+.game-request-event-user .fc-list-event-title a {
+  color: var(--user-request-color) !important;
+}
+.game-request-event-user:not(tr) {
+  border-color: var(--user-request-border-color) !important;
+  background-color: var(--user-request-color) !important;
+}
+.game-request-event-user:hover:not(tr) {
+  border-color: var(--user-request-border-color) !important;
+  background-color: var(--user-request-hover-color) !important;
+}
+
+/* Game appointment */
+.game-appointment-event .fc-list-event-dot {
+  border-color: var(--appointment-color) !important;
+}
+.game-appointment-event .fc-event-title {
+  color: var(--appointment-text-color);
+}
+.game-appointment-event .fc-list-event-title a {
+  color: var(--appointment-color);
+}
+.game-appointment-event:not(tr) {
+  border-color: var(--appointment-border-color) !important;
+  background-color: var(--appointment-color) !important;
+}
+.game-appointment-event-user .fc-list-event-dot {
+  border-color: var(--user-appointment-color) !important;
+}
+.game-appointment-event-user .fc-event-title {
+  color: var(--user-appointment-text-color);
+}
+.game-appointment-event-user .fc-list-event-title a {
+  color: var(--user-appointment-color) !important;
+}
+.game-appointment-event-user:not(tr) {
+  border-color: var(--user-appointment-border-color) !important;
+  background-color: var(--user-appointment-color) !important;
+}
+.game-appointment-event-user:hover:not(tr) {
+  border-color: var(--user-appointment-border-color) !important;
+  background-color: var(--user-appointment-hover-color) !important;
+}
+
+/* Others */
+
+.fc-timegrid-slots tr {
+  height: 2.5rem;
+}
+.fc-event {
+  position: relative;
+  padding: 0.25rem;
+  transition: all 0.1s;
+}
+.fc-list-event-title:not(.available) a {
+  margin-right: 1.5rem;
+}
+.fc-event-time {
+  color: #000 !important;
+}
+.appointment-label span {
+  color: var(--appointment-color);
+}
+.request-label span {
+  color: var(--request-color);
+}
+.user-available-label span {
+  font-weight: 600;
+  color: #000;
+}
+#create-event-table td {
+  padding: 1.5rem;
+  vertical-align: middle;
+}
+.icon-close  {
+  font-size: 1.8rem;
+  color: rgb(231, 161, 147);
+  position: absolute;
+  z-index: 9999;
+  top: 0;
+  right: 0;
+  transition: all 0.2s;
+}
+.icon-close-list  {
+  font-size: 1.8rem;
+  color: rgb(231, 161, 147);
+  position: absolute;
+  z-index: 9999;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 1.5rem;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.icon-close:hover, .icon-close-list:hover  {
+  color: rgb(212, 101, 78);
+}
+.info {
+  font-size: 1.6rem !important;
+  margin-left: 1rem;
+  color: rgb(196, 195, 195);
+  position: relative;
+  top: 0.3rem;
+}

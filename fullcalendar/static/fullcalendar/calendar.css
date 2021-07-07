@@ -6,9 +6,11 @@
 }
 .me-available{
   color: black !important;
-      background-color: #ffff80 !important;
-      border-color: #ffff80;
-       opacity: 0.5;
+  background-color: #ffff80 !important;
+  border-color: #ffff80;
+  opacity: 0.5;
+  font-size: 1em;
+
 }
 .event-deleted{
   display: none;
@@ -17,6 +19,7 @@
 .other-available{
   margin:1px;
   color:white;
+  opacity: 0.5;
 }
 .controls{
 padding-right: 5px;
@@ -56,4 +59,8 @@ padding-left: 5px;
 }
 .my-gr-active {
     box-shadow: 0 5px 15px #FF8800;
+}
+
+.template-homepage .other-available{
+  margin:0;
 }

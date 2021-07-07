@@ -1,0 +1,60 @@
+{% load bootstrap3 i18n %}
+<div class="panel panel-default ">
+  <div class="panel-heading">
+    {% trans "New users" %}
+  </div>
+  <div class="panel-body">
+  <table class="table">
+    <thead>
+      <th>{% trans "username" %}</th>
+      <th> OGS {% trans "username" %} </th>
+      <th> KGS {% trans "username" %} </th>
+      <th> {% trans "reject" %}</th>
+      <th> {% trans "accept" %}</th>
+
+    </thead>
+    <tbody>
+      {% for user in new_members %}
+        <tr>
+          <td>{{user.username}}</td>
+          <td>
+            {% if user.profile.kgs_username %}
+            <a href="https://www.gokgs.com/gameArchives.jsp?user={{user.profile.kgs_username}}" target="_blank">{{user.profile.kgs_username}}</a>
+            {% endif %}
+          </td>
+          <td>
+            {% if user.profile.ogs_id > 0 %}
+               <a href="https://online-go.com/player/{{user.profile.ogs_id}}">{{user.profile.ogs_username}}</a>
+            {% endif %}
+          <td>
+                <form action=" {% url 'community:community_quit' community.pk user.pk %}" method="post" >
+                {% csrf_token %}
+                <div class="form-group">
+                <input type="hidden" name="action" value="quit">
+                <input type="hidden" name="next" value="{{request.path}}">
+                <button type="submit" class="btn btn-danger btn-xs"  onclick="return confirm('
+                {% blocktrans with username=user.username %}You are about to kick {{username}}. Allright?{% endblocktrans %}')">
+                {% bootstrap_icon "remove" %}
+                </button>
+                </div>
+                </form>
+              </div>
+            </td>
+            <td>
+              <div class="col-md-6">
+                <form class="form-inline" role="form" action=" {% url 'community:admin_invite_user' community.pk%}" method="post" >
+                {% csrf_token %}
+                <div class="form-group">
+                <input type="hidden" name="username" value="{{user.username}}" >
+                <button type="submit" class="btn btn-success btn-xs"  onclick="return confirm('
+                {% blocktrans with username=user.username %}You are about to add {{username}} as a community member?{% endblocktrans %}')">
+                {% bootstrap_icon "plus" %}
+                </button>
+                </div>
+                </form>
+            </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>

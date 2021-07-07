@@ -1,5 +1,5 @@
 {% extends "league/admin/base.html" %}
-{% load wagtailcore_tags bootstrap3 %}
+{% load wagtailcore_tags bootstrap3 community_tags %}
 {% block title %}OSR league admin{% endblock %}
 {% block heading %}
 <div class="page-header">
@@ -9,11 +9,24 @@
 {% block content %}
 <div class="row">
 
+{% if no_profile_users %}
+{% include 'league/includes/no_profile_users_table.html' %}
+{% endif %}
   <div class="panel panel-default">
   <div class="panel-heading"><h3> List of new users </h3></div>
     <table id='new_user-table' class='display table' >
       <thead>
-        <tr><th>username</th><th>email</th><th>kgs_username</th><th>ogs_username</th><th>Delete</th><th>No games</th><th>Accept</th>
+        <tr>
+          <th>username</th>
+          <th>email</th>
+          <th>date joined</th>
+          <th>kgs_username</th>
+          <th>ogs_username</th>
+          <th>Communities interest</th>
+          <th>Delete</th>
+          <th>email</th>
+          <th>No games</th>
+          <th>Accept</th>
         </thead>
         <tbody>
           {% for new_user in new_users %}
@@ -32,14 +45,27 @@
               {% endif %}
             </td>
             {% endwith %}
-            <td><a href="https://www.gokgs.com/gameArchives.jsp?user={{new_user.kgs_username}}" target="_blank">{{new_user.kgs_username}}</a></td>
+            <td>{{ new_user.date_joined | date:"SHORT_DATE_FORMAT" }}</td>
+            <td>
+              {% if new_user.profile.kgs_username %}
+              <a href="https://www.gokgs.com/gameArchives.jsp?user={{new_user.profile.kgs_username}}" target="_blank">{{new_user.profile.kgs_username}}</a>
+              {% endif %}
+            </td>
             <td>
               {% if new_user.profile.ogs_id > 0 %}
                  <a href="https://online-go.com/player/{{new_user.profile.ogs_id}}">{{new_user.profile.ogs_username}}</a>
               {% endif %}
             </td>
             <td>
+              {{new_user | new_member_communities}}
+            </td>
+            <td>
               <button class="btn newuser btn-danger btn-xs" action="delete" user_name="{{new_user.username}}" user_id="{{new_user.pk}}">
+                {% bootstrap_icon "remove" %}
+              </button>
+            </td>
+            <td>
+              <button class="btn newuser btn-danger btn-xs" action="delete_email_confirm" user_name="{{new_user.username}}" user_id="{{new_user.pk}}">
                 {% bootstrap_icon "remove" %}
               </button>
             </td>
@@ -55,7 +81,7 @@
             </td>
           </tr>
           {% endfor %}
-        </tbdoy>
+        </tbody>
     </table>
 
   </div>
@@ -110,7 +136,7 @@ $.ajaxSetup({   headers: {  "X-CSRFToken": csrftoken  }  });
 				}
 			});
 			//hide user
-	                $(this).parent().parent().remove();
+	    $(this).parent().parent().remove();
 		}
 	});
 

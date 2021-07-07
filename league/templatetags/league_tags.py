@@ -1,7 +1,5 @@
 from django import template
 from django.utils.safestring import mark_safe
-from discord_bind.models import DiscordUser
-
 from league.models import Registry
 
 register = template.Library()
@@ -47,7 +45,7 @@ def sgf_result(sgf):
     return mark_safe(html)
 
 @register.simple_tag(takes_context=True)
-def html_one_result(context):
+def html_one_result(context, _blank=False):
     # note the use of takes_context = true.
     # this filter only works called from a context where player an opponent exists
     player = context['player']
@@ -63,8 +61,9 @@ def html_one_result(context):
     result = player.results[opponent_pk]
     for game in result:
         # here, game['id'] would get you the id of the game to add a link
-        html += '<a href="/league/' + event + 'games/' + str(game['id']) + '" \
-                data-toggle="tooltip" title="' + player.user.username + ' vs ' + \
+        html += '<a data-toggle="tooltip" target="' + ("_blank" if _blank is True else "_self")  + \
+                '" href="/league/' + event + 'games/' + str(game['id']) + '" \
+                title="' + player.user.username + ' vs ' + \
                 opponent.user.username + '">'
         if game['r'] == 1:
             html += '<i class="fa fa-check" aria-hidden="true" style="color:green"></i></a>'
@@ -74,6 +73,45 @@ def html_one_result(context):
 
     return mark_safe(html)
 
+
+@register.simple_tag(takes_context=True)
+def html_one_result_2(context, _tr_idx, _td_idx, _blank=False):
+    """Replacement for html_one_result. Handles "WontPlay" results"""
+    player = context['player']
+    opponent = context['opponent']
+    event = str(context['event'].pk) + '/' if 'event' in context else ''
+    html = ''
+
+    class_name = ('even-col' if (_td_idx % 2) == 0 else 'odd-col')
+
+    # gray self opponent's cell
+    if _tr_idx == _td_idx:
+        class_name += ' disabled'
+
+    if not opponent.pk in player.results:
+        html += '<td class="' + class_name + '"></td>'
+
+    else:
+        results = player.results[opponent.pk]
+        # gray opponent's cell if a WontPlay result exists in player's result
+        if any(game['p'] == 'WontPlay' for game in results):
+            html += '<td class="disabled"></td>'
+        else:
+            for game in results:
+                # here, game['id'] would get you the id of the game to add a link
+                html = '<td class="' + class_name + '">'
+                html += '<a data-toggle="tooltip" target="' + ("_blank" if _blank is True else "_self")  + \
+                        '" href="/league/' + event + 'games/' + str(game['id']) + '" \
+                        title="' + player.user.username + ' vs ' + \
+                        opponent.user.username + '">'
+                if game['r'] == 1:
+                    html += '<i class="fa fa-check" aria-hidden="true" style="color:green"></i></a>'
+                # will be glyphicon glyphicon-ok-circle or fontawesome thing
+                else:
+                    html += '<i class="fa fa-remove" aria-hidden="true" style="color:red"></i></a>'
+        html += '</td>'
+
+    return mark_safe(html)
 
 @register.simple_tag(takes_context=True)
 def html_one_player_result(context):
@@ -122,8 +160,9 @@ def user_link(user, meijin=None):
         else:
             tooltip += " class='offline'"
         tooltip += '>OGS: ' + o_info + '</p>'
-    discord_user = DiscordUser.objects.filter(user=user).first()
-    if discord_user is not None:
+    # test if discord_user was preloaded
+    if user.discord_user.all():
+        discord_user = user.discord_user.all()[0]
         discord_online = discord_user.status != 'offline'
         tooltip += "<p class='" + discord_user.status + "'>Discord: "
         tooltip += discord_user.username + ' (' + discord_user.discriminator +')</p>'
@@ -162,7 +201,13 @@ def event_link(event):
     html = '<a href="/league/' + str(event.pk) + '">'
     if event.community is not None:
         html += '(' + event.community.slug + ') '
-    html += str(event.name) + '</a>'
+    if event.is_primary:
+        html += '<strong>'
+    html += str(event.name)
+    if event.is_primary:
+        html += '</strong>'
+    html += '</a>'
+
     return mark_safe(html)
 
 
@@ -170,6 +215,12 @@ def event_link(event):
 def division_link(division):
     html = '<a href="/league/' + str(division.league_event.pk) + \
         '/results/' + str(division.pk) + '">' + str(division.name) + '</a>'
+    return mark_safe(html)
+
+@register.filter
+def division_link_iframe(division):
+    html = '<a href="/league/' + str(division.league_event.pk) + \
+        '/iframe/' + str(division.pk) + '">' + str(division.name) + '</a>'
     return mark_safe(html)
 
 
@@ -208,7 +259,7 @@ def p_status(status):
 
 @register.filter()
 def scrap_time(n):
-    return n * 5
+    return n * 2
 
 
 @register.filter()

@@ -1,19 +1,20 @@
 language: python
 
-python:
-  - '3.4'
-  - 'nightly'
-
+dist: bionic
 sudo: false
+
+python:
+  - '3.7'
 
 cache: pip
 
 install:
-  - pip install --quiet --requirement requirements.txt
+  - pip install --quiet --requirement requirements_dev.txt
   - pip install --quiet pylint pylint-django
 
 script:
   - pylint community fixtures fullcalendar home league openstudyroom search wgo manage.py
+  - ./manage.py makemigrations && pytest --create-db
 
 notifications:
   email:

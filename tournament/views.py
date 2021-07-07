@@ -8,7 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic.edit import CreateView, UpdateView
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.contrib import messages
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils import timezone
 from league.models import User, Sgf
 from league.forms import SgfAdminForm, ActionForm
@@ -23,7 +23,7 @@ from .utils import save_round
 
 def rules(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    admin = tournament.is_admin(request.user)
+    admin = request.user.is_authenticated and request.user.is_league_admin(tournament)
     groups = TournamentGroup.objects.filter(league_event=tournament).exists()
 
     context = {
@@ -36,7 +36,7 @@ def rules(request, tournament_id):
 
 def prizes(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    admin = tournament.is_admin(request.user)
+    admin = request.user.is_authenticated and request.user.is_league_admin(tournament)
     groups = TournamentGroup.objects.filter(league_event=tournament).exists()
 
     context = {
@@ -49,7 +49,7 @@ def prizes(request, tournament_id):
 
 def about(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    admin = tournament.is_admin(request.user)
+    admin = request.user.is_authenticated and request.user.is_league_admin(tournament)
     groups = TournamentGroup.objects.filter(league_event=tournament).exists()
     now = timezone.now()
     events = tournament.tournamentevent_set.filter(end__gte=now).order_by('start')
@@ -72,7 +72,7 @@ def brackets_view(request, tournament_id):
     context = {
         'tournament': tournament,
         'groups': groups,
-        'admin': tournament.is_admin(request.user),
+        'admin': request.user.is_authenticated and request.user.is_league_admin(tournament),
         'brackets': brackets
     }
     template = loader.get_template('tournament/brackets.html')
@@ -88,11 +88,11 @@ def groups_view(request, tournament_id):
     context = {
         'tournament': tournament,
         'groups': groups,
-        'admin': tournament.is_admin(request.user)
-
+        'admin': request.user.is_authenticated and request.user.is_league_admin(tournament)
     }
     template = loader.get_template('tournament/groups.html')
     return HttpResponse(template.render(context, request))
+
 
 def games_view(request, tournament_id, sgf_id=None):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
@@ -111,13 +111,14 @@ def games_view(request, tournament_id, sgf_id=None):
         'sgfs': sgfs,
         'tournament': tournament,
         'groups': groups,
-        'admin': tournament.is_admin(request.user)
+        'admin': request.user.is_authenticated and request.user.is_league_admin(tournament)
     }
     if sgf_id is not None:
         sgf = get_object_or_404(Sgf, pk=sgf_id)
         context.update({'sgf':sgf})
     template = loader.get_template('tournament/games.html')
     return HttpResponse(template.render(context, request))
+
 
 def players_view(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
@@ -127,10 +128,11 @@ def players_view(request, tournament_id):
         'tournament': tournament,
         'players': players,
         'groups': groups,
-        'admin': tournament.is_admin(request.user)
+        'admin': request.user.is_authenticated and request.user.is_league_admin(tournament)
     }
     template = loader.get_template('tournament/players.html')
     return HttpResponse(template.render(context, request))
+
 
 def calendar(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
@@ -138,7 +140,7 @@ def calendar(request, tournament_id):
 
     context = {
         'tournament': tournament,
-        'admin': tournament.is_admin(request.user),
+        'admin': request.user.is_authenticated and request.user.is_league_admin(tournament),
         'groups': groups,
         'user': request.user
     }
@@ -182,7 +184,7 @@ class TournamentCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         }
 
     def test_func(self):
-        return self.request.user.is_authenticated() and \
+        return self.request.user.is_authenticated and \
             self.request.user.is_league_admin()
 
     def get_login_url(self):
@@ -207,7 +209,7 @@ class TournamentEventUpdate(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
 @login_required()
 def manage_calendar(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     groups = TournamentGroup.objects.filter(league_event=tournament).exists
     events = tournament.tournamentevent_set.all()
@@ -222,7 +224,7 @@ def manage_calendar(request, tournament_id):
 @login_required()
 def create_calendar_event(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         form = UTCPublicEventForm(request.POST)
@@ -256,7 +258,7 @@ def create_calendar_event(request, tournament_id):
 def edit_player_profile(request, tournament_id, user_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
     user = get_object_or_404(User, pk=user_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     groups = TournamentGroup.objects.filter(league_event=tournament).exists()
 
@@ -283,7 +285,7 @@ def edit_player_profile(request, tournament_id, user_id):
 @login_required()
 def edit_about(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     groups = TournamentGroup.objects.filter(league_event=tournament).exists()
 
@@ -323,7 +325,7 @@ def tournament_list(request):
 @login_required()
 def manage_settings(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         form = TournamentForm(request.POST, instance=tournament)
@@ -344,7 +346,7 @@ def manage_settings(request, tournament_id):
 @login_required()
 def manage_groups(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     players = TournamentPlayer.objects.filter(event=tournament).order_by('order')
     groups = TournamentGroup.objects.filter(league_event=tournament).order_by('order')
@@ -359,7 +361,7 @@ def manage_groups(request, tournament_id):
 @login_required()
 def create_bracket(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         bracket = Bracket(tournament=tournament)
@@ -373,7 +375,7 @@ def create_bracket(request, tournament_id):
 @login_required()
 def create_match(request, round_id):
     round = get_object_or_404(Round, pk=round_id)
-    if not round.bracket.tournament.is_admin(request.user):
+    if not request.user.is_league_admin(round.bracket.tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         round.create_match()
@@ -387,7 +389,7 @@ def create_match(request, round_id):
 def delete_match(request, round_id):
     """Delete the last match of a tournament"""
     round = get_object_or_404(Round, pk=round_id)
-    if not round.bracket.tournament.is_admin(request.user):
+    if not request.user.is_league_admin(round.bracket.tournament):
         raise Http404('What are you doing here?')
     match = round.match_set.all().order_by('order').last()
     if match is not None:
@@ -404,7 +406,7 @@ def delete_match(request, round_id):
 @login_required()
 def rename_round(request, round_id):
     round = get_object_or_404(Round, pk=round_id)
-    if not round.bracket.tournament.is_admin(request.user):
+    if not request.user.is_league_admin(round.bracket.tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         form = RoundForm(request.POST)
@@ -420,7 +422,7 @@ def rename_round(request, round_id):
 @login_required()
 def create_round(request, bracket_id):
     bracket = get_object_or_404(Bracket, pk=bracket_id)
-    if not bracket.tournament.is_admin(request.user):
+    if not request.user.is_league_admin(bracket.tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         form = RoundForm(request.POST)
@@ -442,7 +444,7 @@ def create_round(request, bracket_id):
 @login_required()
 def rename_bracket(request, bracket_id):
     bracket = get_object_or_404(Bracket, pk=bracket_id)
-    if not bracket.tournament.is_admin(request.user):
+    if not request.user.is_league_admin(bracket.tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         form = RoundForm(request.POST)
@@ -458,7 +460,7 @@ def rename_bracket(request, bracket_id):
 @login_required()
 def delete_bracket(request, bracket_id):
     bracket = get_object_or_404(Bracket, pk=bracket_id)
-    if not bracket.tournament.is_admin(request.user):
+    if not request.user.is_league_admin(bracket.tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         bracket.delete()
@@ -471,7 +473,7 @@ def delete_bracket(request, bracket_id):
 @login_required()
 def delete_round(request, round_id):
     round = get_object_or_404(Round, pk=round_id)
-    if not round.bracket.tournament.is_admin(request.user):
+    if not request.user.is_league_admin(round.bracket.tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         round.delete()
@@ -484,7 +486,7 @@ def delete_round(request, round_id):
 @login_required()
 def save_brackets(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         brackets = json.loads(request.POST.get('brackets'))
@@ -500,7 +502,7 @@ def save_brackets(request, tournament_id):
 @login_required()
 def manage_brackets(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     players = TournamentPlayer.objects.filter(event=tournament).order_by('order')
     brackets = tournament.bracket_set.all()
@@ -532,7 +534,7 @@ def manage_brackets(request, tournament_id):
 def manage_games(request, tournament_id):
     """Manage tournament games."""
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     games = Sgf.objects.filter(events=tournament)
     if request.method == 'POST':
@@ -549,7 +551,7 @@ def manage_games(request, tournament_id):
 def set_stage(request, tournament_id):
     """Set the stage of a tournament."""
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         form = ActionForm(request.POST)
@@ -566,7 +568,7 @@ def set_stage(request, tournament_id):
 def create_sgf(request, tournament_id):
     """Actually create a sgf db entry. Should be called after upload_sgf."""
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         form = SgfAdminForm(request.POST)
@@ -606,7 +608,7 @@ def upload_sgf(request, tournament_id):
         Can call save_sgf from it.
     """
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         form = SgfAdminForm(request.POST)
@@ -653,7 +655,7 @@ def upload_sgf(request, tournament_id):
 def invite_user(request, tournament_id):
     """Invite a user in a tournament."""
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         form = CommunytyUserForm(request.POST)
@@ -674,6 +676,7 @@ def invite_user(request, tournament_id):
             player.event = tournament
             player.kgs_username = user.profile.kgs_username
             player.ogs_username = user.profile.ogs_username
+            player.go_quest_username = user.profile.go_quest_username
             player.user = user
             player.order = tournament.last_player_order() + 1
             player.save()
@@ -691,7 +694,7 @@ def invite_user(request, tournament_id):
 def remove_players(request, tournament_id):
     """Remove a player from a tournament ajax powa"""
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == "POST":
         players_list = json.loads(request.POST.get('players_list'))
@@ -705,7 +708,7 @@ def remove_players(request, tournament_id):
 def save_players_order(request, tournament_id):
     """Save the player order and remove players from ajax call"""
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         players_list = json.loads(request.POST.get('players_list'))
@@ -723,7 +726,7 @@ def save_players_order(request, tournament_id):
 @login_required()
 def create_group(request, tournament_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         form = TournamentGroupForm(request.POST)
@@ -741,7 +744,7 @@ def create_group(request, tournament_id):
 def save_groups(request, tournament_id):
     """Save tournament groups players from ajax call."""
     tournament = get_object_or_404(Tournament, pk=tournament_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if request.method == 'POST':
         # first we null all players division
@@ -783,7 +786,7 @@ def set_winner(request, tournament_id):
 def forfeit_group(request, tournament_id, group_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
     group = get_object_or_404(TournamentGroup, pk=group_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if group.league_event.pk != tournament.pk:
         raise Http404('What are you doing here?')
@@ -812,7 +815,7 @@ def forfeit_group(request, tournament_id, group_id):
 def forfeit_bracket(request, tournament_id, match_id):
     tournament = get_object_or_404(Tournament, pk=tournament_id)
     match = get_object_or_404(Match, pk=match_id)
-    if not tournament.is_admin(request.user):
+    if not request.user.is_league_admin(tournament):
         raise Http404('What are you doing here?')
     if match.bracket.tournament != tournament:
         raise Http404('What are you doing here?')
@@ -820,7 +823,11 @@ def forfeit_bracket(request, tournament_id, match_id):
     if request.method == 'POST':
         form = ForfeitForm(request.POST)
         if form.is_valid():
-            winner = get_object_or_404(TournamentPlayer, pk=form.cleaned_data['winner'])
+            winner_pk = form.cleaned_data['winner']
+            if winner_pk > 0:
+                winner = get_object_or_404(TournamentPlayer, pk=winner_pk)
+            else:
+                winner = None
             match.winner = winner
             match.save()
             return HttpResponseRedirect(form.cleaned_data['next'])

@@ -32,18 +32,23 @@ BASE_DIR = os.path.dirname(PROJECT_DIR)
 INSTALLED_APPS = [
     'home',
     'search',
+    'rest_framework',
+    # https://www.wagtail-localize.org/
+    "wagtail_localize",
+    "wagtail_localize.locales",  # This replaces "wagtail.locales"
 
-    'wagtail.wagtailforms',
-    'wagtail.wagtailredirects',
-    'wagtail.wagtailembeds',
-    'wagtail.wagtailsites',
-    'wagtail.wagtailusers',
-    'wagtail.wagtailsnippets',
-    'wagtail.wagtaildocs',
-    'wagtail.wagtailimages',
-    'wagtail.wagtailsearch',
-    'wagtail.wagtailadmin',
-    'wagtail.wagtailcore',
+    'wagtail.contrib.forms',
+    'wagtail.contrib.redirects',
+    "wagtail.contrib.table_block",
+    'wagtail.embeds',
+    'wagtail.sites',
+    'wagtail.users',
+    'wagtail.snippets',
+    'wagtail.documents',
+    'wagtail.images',
+    'wagtail.search',
+    'wagtail.admin',
+    'wagtail.core',
 
     'modelcluster',
     'taggit',
@@ -54,6 +59,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_comments_xtd',
+    'django_comments',
 
     #for django-user-account and puput and forum...
     'django.contrib.sites',
@@ -75,8 +82,8 @@ INSTALLED_APPS = [
     #for puput
     'puput',
     'compressor',
-    'wagtail.contrib.wagtailsitemaps',
-    'wagtail.contrib.wagtailroutablepage',
+    'wagtail.contrib.sitemaps',
+    'wagtail.contrib.routable_page',
 
     #allauth
     'allauth',
@@ -107,7 +114,8 @@ INSTALLED_APPS = [
 
     'discord_bind',
     #"anymail",
-    'stats'
+    'stats',
+    'fancysearch'
 
 ]+ get_machina_apps()
 
@@ -118,13 +126,12 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    #'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
 
-    'wagtail.wagtailcore.middleware.SiteMiddleware',
-    'wagtail.wagtailredirects.middleware.RedirectMiddleware',
+    'wagtail.contrib.redirects.middleware.RedirectMiddleware',
 
     # Machina
     'machina.apps.forum_permission.middleware.ForumPermissionMiddleware',
@@ -188,6 +195,12 @@ USE_L10N = True
 
 USE_TZ = True
 
+WAGTAIL_I18N_ENABLED = True
+WAGTAIL_CONTENT_LANGUAGES = LANGUAGES = [
+    ('en', "English"),
+    ('fr', "French"),
+    ('es', "Spanish"),
+]
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
@@ -209,16 +222,14 @@ STATIC_URL = '/static/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
-
+LOCALE_PATHS = (
+    os.path.join(BASE_DIR, 'locale'),
+)
 # Wagtail settings
 
 WAGTAIL_SITE_NAME = "openstudyroom"
 
-# Base URL to use when referring to full URLs within the Wagtail admin backend -
-# e.g. in notification emails. Don't include '/admin' or a trailing slash
-BASE_URL = 'http://openstudyroom.org'
-
-ALLOWED_HOSTS = ['127.0.0.1']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
 #do that before migrate
 AUTH_USER_MODEL = 'league.User'
@@ -313,3 +324,26 @@ BOOTSTRAP3 = {
     # Include jQuery with Bootstrap JavaScript (affects django-bootstrap3 template tags)
     'include_jquery': False,
 }
+
+COMMENTS_APP = 'django_comments_xtd'
+COMMENTS_XTD_MAX_THREAD_LEVEL = 2
+COMMENTS_XTD_CONFIRM_EMAIL = True
+#  To help obfuscating comments before they are sent for confirmation.
+COMMENTS_XTD_SALT = (b"Timendi causa est nescire. "
+                     b"Aequam memento rebus in arduis servare mentem.")
+PUPUT_COMMENTS_PROVIDER = 'puput.comments.DjangoCommentsProvider'
+COMMENTS_XTD_LIST_ORDER = ('-thread_id', 'order')  # default is ('thread_id', 'order')
+COMMENTS_XTD_APP_MODEL_OPTIONS = {
+    'puput.entrypage': {
+        'allow_flagging': True,
+        'allow_feedback': True,
+        'show_feedback': True,
+    },
+    'home.streamfieldentrypage':{
+        'allow_flagging': True,
+        'allow_feedback': True,
+        'show_feedback': True,
+    }
+}
+
+PUPUT_USERNAME_REGEX = r'[A-Za-z0-9-]+'

@@ -1,7 +1,37 @@
 {% extends 'full_width.html' %}
-{% load bootstrap3 league_tags static forum_markup_tags%}
+{% load bootstrap3 league_tags static forum_markup_tags i18n tz%}
 {% block title %}OSR - {{community.name}}{% endblock %}
 {% block extra_head_js %}
+{% get_current_language as LANGUAGE_CODE %}
+
+<link rel='stylesheet' type="text/css" href="{%static 'fullcalendar/styles/fullcalendar.css'%}"/>
+<link rel='stylesheet' type="text/css" href="{%static 'fullcalendar/styles/rangeslider.css'%}"/>
+<link rel='stylesheet' type="text/css" href="{%static 'fullcalendar/styles/micromodal.css'%}"/>
+<link rel='stylesheet' type="text/css" href="{%static 'fullcalendar/styles/custom.css'%}"/>
+<script src='https://cdn.jsdelivr.net/npm/moment@2.27.0/min/moment.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.7.0/main.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.7.0/locales-all.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/moment@5.5.0/main.global.min.js'></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/js/ion.rangeSlider.min.js"></script>
+<script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+
+<link rel='stylesheet' type="text/css" href="{%static 'css/sidemenu.css'%}"/>
+
+<link rel='stylesheet' href='https://cdn.jsdelivr.net/qtip2/3.0.3/basic/jquery.qtip.min.css'/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.8.1/css/bootstrap-slider.min.css" />
+<script
+    src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+    integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
+    crossorigin="anonymous">
+</script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs/dt-1.10.16/datatables.min.css"/>
+<script type="text/javascript" src="https://cdn.datatables.net/v/bs/dt-1.10.16/datatables.min.js"></script>
+<script type="text/javascript" src="https://cdn.datatables.net/plug-ins/1.10.13/dataRender/datetime.js"></script>
+<script src='https://cdn.jsdelivr.net/qtip2/3.0.3/basic/jquery.qtip.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/bootstrap-slider/9.8.1/bootstrap-slider.min.js'></script>
+
 <script type="text/javascript">
 function load_game(game_id) {
     $.ajax({
@@ -23,21 +53,22 @@ function processData(data)
 
 };
 return false;};
+
 </script>
 {% endblock %}
+
 {% block heading %}
 <div class="page-header">
     <h1> {{community.name}}  </h1>
 </div>
 {%endblock%}
 {% block content %}
+{% get_current_timezone as TIME_ZONE %}
 <div class="panel panel-default">
 <div class="panel-heading clearfix">
   <h3> {{community.name}} ({{community.slug}})
   {% if admin %}
-  <a href="{% url 'community:community_update' community.pk %}"><button class="btn btn-default pull-right">{% bootstrap_icon 'wrench' %} Edit </button></a>
-  <a href="{% url 'community:admin_user_list' community.pk %}"><button class="btn btn-default pull-right">{% bootstrap_icon 'user' %} Manage users </button></a>
-
+  <a href="{% url 'community:community_update' community.pk %}"><button class="btn btn-default pull-right">{% bootstrap_icon 'wrench' %} {% trans "Edit" %} </button></a>
   {% endif %}
   {% if can_join %}
   <form action=" {% url 'community:community_join' community.pk request.user.pk %}" method="post" >
@@ -45,8 +76,10 @@ return false;};
     <div class="form-group">
     <input type="hidden" name="action" value="join">
     <input type="hidden" name="next" value="{{request.path}}">
-    <button type="submit" class="btn btn-success pull-right"  onclick="return confirm('You are about to join the {{community.name}} community. Allright?')">
-    {% bootstrap_icon "ok" %} Join {{community.name}} !
+    <button type="submit" class="btn btn-success pull-right"  onclick="return confirm('
+    {% blocktrans with name=community.name %}You are about to join the {{name}} community. Allright? {% endblocktrans %}
+    ')">
+    {% bootstrap_icon "ok" %} {% trans "Join" %} {{community.name}} !
     </button>
     </div>
     </form>
@@ -58,7 +91,7 @@ return false;};
     <input type="hidden" name="action" value="join">
     <input type="hidden" name="next" value="{{request.path}}">
     <button type="submit" class="btn btn-danger pull-right"  onclick="return confirm('You are about to quit the {{community.name}} community. Allright?')">
-    {% bootstrap_icon "remove" %} Quit {{community.name}} !
+    {% bootstrap_icon "remove" %} {% trans "Quit" %} {{community.name}} !
     </button>
     </div>
     </form>
@@ -71,100 +104,233 @@ return false;};
 {% if can_quit %}
 <p>{{community.private_description|safe|rendered}}</p>
 {% endif %}
-
-
 </div>
 </div>
-<div class="panel panel-default">
+
+{% if admin %}
+  {% include "community/includes/new_user_table.html"%}
+{% endif %}
+
+
+<ul class="nav nav-tabs">
+  <li class="active"><a data-toggle="tab" href="#leagues">{% trans "Leagues" %}</a></li>
+  <li><a data-toggle="tab" href="#tournaments">{% trans "tournaments" %}</a></li>
+  <li><a data-toggle="tab" href="#games">{% trans "Games" %}</a></li>
+  <li><a data-toggle="tab" href="#members">{% trans "Members" %}</a></li>
+  <li><a data-toggle="tab" href="#activity">{% trans "Activity" %}</a></li>
+  {% if admin %}
+  <li><a data-toggle="tab" href="#events">{% trans "Events" %}</a></li>
+  {% endif %}
+</ul>
+
+<div class="tab-content">
+
+  <div id="leagues" class="panel panel-default tab-pane fade in active">
+    <div class="panel-heading clearfix">
+      <h3>
+        {% blocktrans with name=community.name %}All {{name}} leagues {% endblocktrans %}
+        {% if admin %}
+        <a href="{% url 'community:create_league' community.pk %}">
+          <button class="btn btn-success pull-right">
+            {% bootstrap_icon 'plus' %}
+            {% trans "Create new league" %}
+          </button>
+        </a>
+        {% endif %}
+      </h3>
+      {% trans "Open leagues are green." %}
+    </div>
+    {% include "community/includes/leagues_table.html" with leagues=leagues%}
+  </div>
+
+  <div id="games" class="panel panel-default tab-pane fade in">
+    <div class="panel-heading">
+      <h3>{{community.name}} {% trans "Games" %}</h3>
+    </div>
+    <div class ="row">
+      <div class="col-md-4">
+        <div id ="game_infos"></div>
+        {% include "league/includes/games.html" with sgfs=sgfs %}
+      </div>
+      <div class="col-md-8">
+        <div id="player">
+          <div class="alert alert-info">
+            {% trans "Click a game result to see it." %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="activity" class="panel panel-default tab-pane fade in">
+    <div id='calendar' class="panel-body"></div>
+    <!-- Modal forms -->
+    {% include 'fullcalendar/includes/modal.html' %}
+  </div>
+
+<div id="tournaments" class="panel panel-default tab-pane fade">
 <div class="panel-heading clearfix">
   <h3>
-All {{community.name}} leagues
+{% blocktrans with name=community.name %}All {{name}} tournaments {% endblocktrans %}
 {% if admin %}
-<a href="{% url 'community:create_league' community.pk %}">
+<a href="{% url 'community:create_tournament' community.pk %}">
   <button class="btn btn-success pull-right">
     {% bootstrap_icon 'plus' %}
-    Create new league
+    {% trans "Create new tournament" %}
   </button>
 </a>
 {% endif %}
 </h3>
-Open leagues are green.
+{% trans "Open tournament are green." %}
 </div>
-<table id="league-table" class="table">
-  <thead>
-    <th>Name</th>
-    <th>Begin</th>
-    <th>Ends</th>
-    <th>Type</th>
-    <th># Divisions</th>
-    <th># Players</th>
-    <th># games </th>
-    {% if admin %}
-    <th>Edit </th>
-    {% endif %}
-  </thead>
-  <tbody>
-  {% for league in leagues %}
-  <tr {% if league.is_open %}class="success"{% endif %}>
-    <td>
-      {{league | event_link}}
-      {% if  not league.is_public %}
-   <span class="glyphicon glyphicon-eye-close" aria-hidden="true"></span>
-     {% endif %}
-   </td>
-    <td>{{league.begin_time |date:"SHORT_DATE_FORMAT"}}</td>
-    <td>{{league.end_time |date:"SHORT_DATE_FORMAT"}}</td>
-    <td>{{league.type}}</td>
-    <td>{{ league.number_divisions }}</td>
-    <td>{{league.number_players}}</td>
-    <td>{{ league.number_games}}</td>
-    {% if admin %}
-    <td><a href= "{% url 'league:admin_events_update' league.pk %}"> {% bootstrap_icon 'wrench' %} </a></td>
-    {% endif %}
-  </tr>
-  {% endfor %}
-</tbody>
-</table>
+{% include "community/includes/tournaments_table.html" with leagues=tournaments%}
 </div>
 
-<div class="panel panel-default">
-<div class="panel-heading"><h3>{{community.name}} Games</h4></div>
-<div class ="row">
-<div class="col-md-4">
-  <div id ="game_infos">
-</div>
 
-{% include "league/includes/games.html" with sgfs=sgfs %}
-</div>
-
-<div class="col-md-8">
-
-    <div id="player">
-      <div class="alert alert-info">
-      Click a game result to see it.
-    </div>
+<div id="members" class="panel panel-default tab-pane fade">
+<div class="panel-heading clearfix">
+  <h3>
+{% blocktrans with name=community.name %}All {{name}} members {% endblocktrans %}
+{% if admin %}
+  <div class="pull-right">
+    {% trans "Invite a user" %}
+    <form action=" {% url 'community:admin_invite_user' community.pk %}" method="post" >
+        {% csrf_token %}
+        <div class="form-group">
+        <input type="text" name="username" placeholder="{% trans 'OSR exact username' %}" >
+        <button type="submit" class="btn btn-success btn-sm"  >
+        {% bootstrap_icon "ok" %} {% trans "Invite  !" %}
+        </button>
+        </div>
+        </form>
   </div>
+{% endif %}
+</h3>
+{% trans "Community admins are blue." %}
 </div>
+
+{% include "community/includes/members_table.html" with members=members%}
 </div>
-</div>
+
+{% if admin %}
+  <div id="events" class="panel panel-default tab-pane fade">
+    <legend>
+      Categories
+      <a  href="{%url 'community:create_category' community.pk %}">
+        <button class="btn btn-xs btn-success pull-right clearfix">
+          {%bootstrap_icon 'plus'%} Create a new category
+        </button>
+      </a>
+      </legend>
+    {% include 'fullcalendar/includes/admin_category_table.html' %}
+
+    <legend>
+      Events
+      <a  href="{%url 'community:create_event' community.pk %}">
+        <button class="btn btn-xs btn-success pull-right clearfix">
+          {%bootstrap_icon 'plus'%} Create a new event
+        </button>
+      </a>
+      </legend>
+    {% include 'fullcalendar/includes/admin_event_table.html' %}
+
+  </div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs/dt-1.10.16/datatables.min.css"/>
-<script type="text/javascript" src="https://cdn.datatables.net/v/bs/dt-1.10.16/datatables.min.js"></script>
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
-<script type="text/javascript" src="https://cdn.datatables.net/plug-ins/1.10.13/dataRender/datetime.js"></script>
+{% get_current_timezone as TIME_ZONE %}
+{% get_current_language as LANGUAGE_CODE %}
 
+{% if admin %}
+  <script src={%static 'league/js/manage_league_user.js'%}></script>
+{% endif %}
+<script>
+{% include 'league/includes/ajax_setup.html' %}
+</script>
+<!--
+{% if can_quit %}
+  <script src={%static 'fullcalendar/calendar_member.js'%}></script>
+{% else %}
+  <script src={%static 'fullcalendar/calendar_non_member.js'%}></script>
+{% endif %}
+-->
 <script type="text/javascript">
+
 $(document).ready(function() {
   $('#game-table').DataTable({"bLengthChange": false ,"dom":'<"H"lr>ft<"F"ip>',
   "columnDefs": [ {
     targets: 0,
-    render: $.fn.dataTable.render.moment( 'MMM DD, YYYY','MMM DD, YYYY' )
+    render: $.fn.dataTable.render.moment( 'YYYY-MM-DD','L', '{{LANGUAGE_CODE}}' )
   } ],
   "order": [[ 0, "desc" ]]});
-} );
 
+    $('#tournaments-table').DataTable({
+      "bLengthChange": false ,"dom":'<"H"lr>ft<"F"ip>',
+      "columnDefs": [ {
+        targets: [1,2],
+        render: $.fn.dataTable.render.moment( 'YYYY-MM-DD','L', '{{LANGUAGE_CODE}}' )
+      } ],
+      "order": [[ 1, "desc" ]]
+    });
+
+    $('#leagues-table').DataTable({
+      "bLengthChange": false ,"dom":'<"H"lr>ft<"F"ip>',
+      "columnDefs": [ {
+        targets: [1,2],
+        render: $.fn.dataTable.render.moment( 'YYYY-MM-DD','L', '{{LANGUAGE_CODE}}' )
+      } ],
+      "order": [[ 1, "desc" ]]
+    });
+
+    var memberTable = $('#members-table').DataTable({
+      "bAutoWidth": false,
+      {% if admin %}
+    "columnDefs": [
+            {
+                "targets": [ 3 ],
+                "visible": false,
+            },
+            {
+                "targets": [ 4 ],
+                "visible": false
+            },
+            {
+                "targets": [ 5 ],
+                "visible": false,
+            },]
+      {% endif %}
+          }
+    )
+    {% if admin %}
+    $('#cal-event-table').DataTable({
+      "bLengthChange": false ,"dom":'<"H"lr>ft<"F"ip>',
+      "columnDefs": [ {
+        targets: 1,
+        render: $.fn.dataTable.render.moment( 'MMM DD, YYYY HH:mm','MMM DD, YYYY HH:mm' )
+      } ],
+      "order": [[ 1, "desc" ]]
+    });
+
+    $('.toggle-column').on( 'click', function (e) {
+
+        // Get the column API object
+        var column = memberTable.column( $(this).attr('data-column') );
+
+        // Toggle the visibility
+        column.visible( ! column.visible() );
+    } );
+    {% endif %}
+
+});
 </script>
-
+{{ calendar_data|json_script:"context-data" }}
+<script>{% include 'league/includes/ajax_setup.html' %}</script>
+<script src={% static 'fullcalendar/calendar.js' %}></script>
+<script>
+	$(document).ready(function() {
+    Calendar.initialize('{{LANGUAGE_CODE}}');
+  });
+</script>
 {% endblock %}

@@ -1,6 +1,6 @@
 {% extends MACHINA_BASE_TEMPLATE_NAME %}
 {% load static %}
-{% load i18n %}
+{% load i18n tz calendar_tags%}
 {% load forum_permission_tags %}
 
 {% block title %}{{ MACHINA_FORUM_NAME|default:"Forum" }} &mdash; {% block sub_title %}{% endblock sub_title %}{% endblock title %}
@@ -89,10 +89,17 @@
 </div>
 {% endblock body %}
 
+{% get_current_timezone as TIME_ZONE %}
+{% get_current_language as LANGUAGE_CODE %}
+
 {% block js %}
 {{ block.super }}
 <script src="{% static 'js/machina.min.js' %}" type="text/javascript" charset="utf-8"></script>
 <script src="{% static 'wgo/shortcode.js' %}" type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'wgo/glift_shortcode.js' %}" type="text/javascript" charset="utf-8"></script>
+<script src="{% static 'js/glift_1_1_2.min.js' %}" type="text/javascript" charset="utf-8"></script>
+
+
 
 <script type="text/javascript">
   $(function() {
@@ -115,28 +122,39 @@ $('.post-content').each(function() {
     str = preprocessor($( this ).html())
     $( this ).html(str)
 })
+$('.post-content').each(function() {
+    str = glift_preprocessor($( this ).html())
+    $( this ).html(str)
+})
+$('.glift-div').each(function(index){
+  id = "glift_" + index
+  $(this).attr('id', id)
+  glift.create({
+    divId:id,
+    sgf:$( this ).attr('data-sgf')
+  })
+})
 
+$( document ).on( "mouseenter", "a.coord", function() {
+    e = $( this ).html();
+    id = $( this ).attr('data-target');
+    player = $('#'+ id)[0]._wgo_player;
+    var t, n;
+    t = e.charCodeAt(0) - "a".charCodeAt(0);
+    if (t < 0) t += "a".charCodeAt(0) - "A".charCodeAt(0);
+    if (t > 7) t--;
+    n = e.charCodeAt(1) - "0".charCodeAt(0);
+    if (e.length > 2) n = n * 10 + (e.charCodeAt(2) - "0".charCodeAt(0));
+    n = player.kifuReader.game.size - n;
+    player._tmp_mark = {
+        type: "MA",
+        x: t,
+        y: n
+    };
+    player.board.addObject(player._tmp_mark);
+});
 
-$('.coord').hover(
-    function(){
-        e = $( this ).html();
-        id = $( this ).attr('data-target');
-        player = $('#'+ id)[0]._wgo_player;
-        var t, n;
-        t = e.charCodeAt(0) - "a".charCodeAt(0);
-        if (t < 0) t += "a".charCodeAt(0) - "A".charCodeAt(0);
-        if (t > 7) t--;
-        n = e.charCodeAt(1) - "0".charCodeAt(0);
-        if (e.length > 2) n = n * 10 + (e.charCodeAt(2) - "0".charCodeAt(0));
-        n = player.kifuReader.game.size - n;
-        player._tmp_mark = {
-            type: "MA",
-            x: t,
-            y: n
-        };
-        player.board.addObject(player._tmp_mark);
-    },
-    function() {
+$( document ).on( "mouseleave", "a.coord", function() {
         id = $( this ).attr('data-target');
         player = $('#'+ id)[0]._wgo_player;
         player.board.removeObject(player._tmp_mark);
@@ -144,11 +162,14 @@ $('.coord').hover(
     }
 );
 
-$('.move').click(function(){
+$( document ).on( "click", "a.move", function() {
     var n = parseInt($( this ).html().replace(/[^0-9\.]/g, ''));
     id = $( this ).attr('data-target');
     player = $('#'+ id)[0]._wgo_player;
     player.goTo(n);
 });
+
+moment.locale('{{LANGUAGE_CODE}}');
+gmt($('.post'),'{{TIME_ZONE}}','{% tz_offset %}')
 </script>
 {% endblock js %}

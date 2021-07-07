@@ -1,34 +1,40 @@
 from __future__ import absolute_import, unicode_literals
-
 import random
+
+import requests
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_save
+from django.db.models import Count, Case, IntegerField, When
+from django.db.models.functions import TruncMonth
+from django.dispatch import receiver
 from django.template.loader import render_to_string
 from django.utils.encoding import python_2_unicode_compatible
-#from django.utils import timezone
+from django.utils import timezone
 from django import forms
-from django.core.urlresolvers import reverse
-
-from wagtail.wagtailcore.models import Page
-from wagtail.wagtailcore.fields import RichTextField, StreamField
-from wagtail.wagtailsnippets.models import register_snippet
-from wagtail.wagtailadmin.edit_handlers import FieldPanel, StreamFieldPanel
-from wagtail.wagtailcore.blocks import TextBlock, StructBlock, StreamBlock, FieldBlock, CharBlock, \
+from django.urls import reverse
+from wagtail.core.models import Page
+from wagtail.core.fields import RichTextField, StreamField
+from wagtail.snippets.models import register_snippet
+from wagtail.snippets.blocks import SnippetChooserBlock
+from wagtail.admin.edit_handlers import FieldPanel, StreamFieldPanel
+from wagtail.core.blocks import TextBlock, StructBlock, StreamBlock, FieldBlock, CharBlock, \
     RichTextBlock, RawHTMLBlock, IntegerBlock
-from wagtail.wagtailimages.blocks import ImageChooserBlock
-from wagtail.wagtaildocs.blocks import DocumentChooserBlock
-from wagtail.wagtailcore.signals import page_published
+from wagtail.images.blocks import ImageChooserBlock
+from wagtail.documents.blocks import DocumentChooserBlock
+from wagtail.contrib.table_block.blocks import TableBlock
+from wagtail.core.signals import page_published
 from wagtailmenus.models import MenuPage
 from puput.models import EntryPage, BlogPage
-import requests
-
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from machina.core.db.models import get_model
+from machina.apps.forum_conversation.forum_polls.models import TopicPoll
+from league.models import Registry, Sgf, LeagueEvent
+
+
 ForumPost = get_model('forum_conversation', 'Post')
+TopicPoll.__module__ = "machina.apps.forum_conversation.forum_polls.models"
 
-#from fullcalendar.models import AvailableEvent, GameRequestEvent
-
+register_snippet(TopicPoll)
 
 @register_snippet
 @python_2_unicode_compatible  # provide equivalent __unicode__ and __str__ methods on Python 2
@@ -90,8 +96,15 @@ class WgoAlignmentChoiceBlock(FieldBlock):
 
 class ImageBlock(StructBlock):
     image = ImageChooserBlock()
-    caption = RichTextBlock()
+    caption = RichTextBlock(blank=True, null=True, required=False)
     alignment = ImageFormatChoiceBlock()
+    width = IntegerBlock(
+        default=None,
+        blank=True,
+        null=True,
+        required=False,
+        help_text="optional width in px. Default is auto."
+    )
 
 
 class AlignedHTMLBlock(StructBlock):
@@ -121,6 +134,8 @@ class MyStreamBlock(StreamBlock):
     aligned_html = AlignedHTMLBlock(icon="code", label='Raw HTML')
     document = DocumentChooserBlock(icon="doc-full-inverse")
     wgo = WgoBlock(label="wgo")
+    table = TableBlock()
+    poll = SnippetChooserBlock(TopicPoll, template="home/includes/poll.html")
 
 
 class HomePage(Page):
@@ -134,6 +149,35 @@ class HomePage(Page):
         if quotes:
             quote = random.choice(Quote.objects.all())
             context['quote'] = quote
+        context['discord_presence_count'] = Registry.get_discord_presence_count()
+        first_of_the_month = timezone.now().date().replace(day=1)
+        games = Sgf.objects\
+            .exclude(date__isnull=True)\
+            .defer('sgf_text')\
+            .filter(league_valid=True)\
+            .filter(date__gte=first_of_the_month)\
+            .annotate(month=TruncMonth('date'))\
+            .values('month')\
+            .annotate(total=Count('id'))\
+            .annotate(kgs=Count(
+                Case(
+                    When(place__startswith="The KGS", then=1),
+                    output_field=IntegerField(),
+                    distinct=True
+                )))\
+            .annotate(ogs=Count(
+                Case(
+                    When(place__startswith="OGS", then=1),
+                    output_field=IntegerField(),
+                    distinct=True
+                )))\
+            .values('total', 'kgs', 'ogs')
+        if games:
+            context['games'] = games[0]
+        else:
+            context['games'] = {"total":0}
+        n_leagues = LeagueEvent.objects.filter(is_open=True, is_public=True, community__isnull=True).count()
+        context['n_leagues'] = n_leagues
 #        user = request.user
 #        if user.is_authenticated and user.is_league_member:
 #            now = timezone.now()
@@ -203,7 +247,7 @@ def send_to_discord(sender, **kwargs):
         return
 
     if settings.DEBUG:
-        discord_url = 'http://example.com/' # change this for local test
+        return
     else:
         with open('/etc/discord_hook_url.txt') as f:
             discord_url = f.read().strip()
@@ -233,6 +277,7 @@ page_published.connect(send_to_discord, sender=StreamFieldEntryPage)
 @receiver(post_save, sender=ForumPost)
 def forum_post_to_discord(sender, instance, **kwargs):
     # don't announce edits
+    instance.refresh_from_db()
     if instance.updates_count > 0:
         return
     # don't announce private admins forums forum.
@@ -241,7 +286,7 @@ def forum_post_to_discord(sender, instance, **kwargs):
     if parent_id is not None and parent_id.pk == 12:
         return
     if settings.DEBUG:
-        discord_url = 'http://exemple.com' # change this for local test
+        return
     else:
         with open('/etc/discord_forum_hook_url.txt') as f:
             discord_url = f.read().strip()

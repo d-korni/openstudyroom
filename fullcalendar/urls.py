@@ -2,10 +2,13 @@ from django.conf.urls import url
 
 from . import views
 
+app_name = 'fullcalendar'
+
+
 urlpatterns = [
     url(
         r'^update/(?P<pk>[0-9]+)/$',
-        views.PublicEventUpdate.as_view(),
+        views.PublicEventUpdate.as_view(success_url='/calendar/admin/event-list/'),
         name='update_cal_event'
     ),
     url(
@@ -28,9 +31,24 @@ urlpatterns = [
         views.PublicEventCreate.as_view(success_url='/calendar/admin/event-list/'),
         name='create_cal_event'
     ),
-    url(r'^$', views.calendar_view, name='calendar_view'),
     url(
-        r'^(?P<user_id>[0-9]+)/$',
+        r'^category/create/$',
+        views.CategoryCreate.as_view(success_url='/calendar/admin/event-list/'),
+        name='create_category'
+    ),
+    url(
+        r'^category/delete/(?P<pk>[0-9]+)/$',
+        views.admin_delete_category,
+        name='admin_delete_category'
+    ),
+    url(
+        r'^category/update/(?P<pk>[0-9]+)/$',
+        views.CategoryUpdate.as_view(success_url='/calendar/admin/event-list/'),
+        name='admin_update_category'
+    ),
+    url(r'^old/$', views.calendar_view, name='calendar_view'),
+    url(
+        r'^old/(?P<user_id>[0-9]+)/$',
         views.calendar_view,
         name='calendar_view'
     ),
@@ -40,6 +58,47 @@ urlpatterns = [
         name='admin_cal_event_list'
     ),
     url(r'^save/$', views.save, name='save'),
+    url(r'^$', views.calendar_main_view, name='calendar_main_view'),
+    url(
+        r'^get-public-events/$',
+        views.get_public_events,
+        name='get_public_events'
+    ),
+    url(
+        r'^get-available-events/(?P<user_pk>[0-9]+)/$',
+        views.get_available_events,
+        name='get_available_events'
+    ),
+    url(
+        r'^get-opponents-available-events/(?P<user_pk>[0-9]+)/$',
+        views.get_opponents_available_events,
+        name='get_opponents_available_events'
+    ),
+    url(
+        r'^get-game-request-events/$',
+        views.get_game_request_events,
+        name='get_game_request_events'
+    ),
+    url(
+        r'^get-game-appointment-events/$',
+        views.get_game_appointment_events,
+        name='get_game_appointment_events'
+    ),
+    url(
+        r'^create-available-event/$',
+        views.create_available_event,
+        name='create_available_event'
+    ),
+    url(
+        r'^update-available-event/$',
+        views.update_available_event,
+        name='update_available_event'
+    ),
+    url(
+        r'^delete-available-event/$',
+        views.delete_available_event,
+        name='delete_available_event'
+    ),
     url(r'^json-feed/$', views.json_feed, name='json_feed'),
     url(
         r'^json-feed/(?P<user_id>[0-9]+)/$',
@@ -50,6 +109,11 @@ urlpatterns = [
         r'^create-game-request/$',
         views.create_game_request,
         name='create_game_request'
+    ),
+    url(
+        r'^create-game/$',
+        views.create_game,
+        name='create_game'
     ),
     url(
         r'^cancel-game-request-ajax/$',

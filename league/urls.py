@@ -2,6 +2,7 @@ from django.conf.urls import url
 
 from . import views
 
+app_name = 'league'
 urlpatterns = [
     url(r'^$', views.division_results, name='results'),
     # Sad, but for historical reason, info page is named event.
@@ -13,6 +14,8 @@ urlpatterns = [
     url(r'^ladder/$', views.ladder, name='ladder'),
     url(r'^ddk/$', views.ddk, name='ddk'),
     url(r'^dan/$', views.dan, name='dan'),
+    url(r'^9x9/$', views.ninenine, name='ninenine'),
+
     url(r'^admin/event/(?P<to_event_id>[0-9]+)/populate/$',
         views.populate, name='admin_event_populate'),
     url(r'^admin/event/(?P<to_event_id>[0-9]+)/populate/(?P<from_event_id>[0-9]+)/$',
@@ -26,6 +29,8 @@ urlpatterns = [
     url(r'^(?P<event_id>[0-9]+)/results/$', views.division_results, name='results'),
     url(r'^(?P<event_id>[0-9]+)/$', views.division_results, name='results'),
     url(r'^(?P<event_id>[0-9]+)/infos/$', views.infos, name='event'),
+    url(r'^(?P<event_id>[0-9]+)/iframe/$', views.division_results_iframe, name='results_iframe'),
+    url(r'^(?P<event_id>[0-9]+)/iframe/(?P<division_id>[0-9]+)/$', views.division_results_iframe, name='results_iframe'),
 
     url(r'^games/$', views.list_games, name='games'),
     url(r'^games/(?P<sgf_id>[0-9]+)/$', views.list_games, name='game'),
@@ -45,6 +50,7 @@ urlpatterns = [
 
     url(r'^account/$', views.account, name='league_account'),
     url(r'^account/(?P<user_name>[\w.@+-]+)/$', views.account, name='league_account'),
+    url(r'^account/(?P<user_name>[\w.@+-]+)/activity/$', views.account_activity, name='league_account_activity'),
     url(r'^scraper/$', views.scraper_view, name='scraper'),
 
     url(r'^admin/$', views.admin, name='admin'),
@@ -67,7 +73,7 @@ urlpatterns = [
     ),
     url(
         r'^admin/events/create/(?P<copy_from_pk>[0-9]+)/$',
-        views.LeagueEventCreate.as_view(success_url='/league/admin/events/'),
+        views.LeagueEventCreate.as_view(),
         name='admin_events_create'
     ),
     url(r'^admin/events/(?P<event_id>[0-9]+)/set_primary/$',
@@ -77,6 +83,14 @@ urlpatterns = [
     url(r'^admin/sgf/$', views.admin_sgf_list, name='admin_sgf'),
     url(r'^admin/sgf/(?P<sgf_id>[0-9]+)/save/$', views.admin_save_sgf, name='save_sgf'),
     url(r'^admin/sgf/(?P<sgf_id>[0-9]+)/delete/$', views.admin_delete_sgf, name='delete_sgf'),
+    url(r'^division/(?P<pk>[0-9]+)/informations/$',
+        views.DivisionUpdate.as_view(), name='division_update_infos'),
+    url(r'^division/(?P<division_id>[0-9]+)/wont-play/$',
+        views.division_update_wont_play, name='division_update_wont_play'),
+    url(r'^division/(?P<division_id>[0-9]+)/wont-play/create$',
+        views.division_create_wont_play, name='division_create_wont_play'),
+    url(r'^division/(?P<division_id>[0-9]+)/wont-play/remove$',
+        views.division_remove_wont_play, name='division_remove_wont_play'),
     url(r'^admin/events/(?P<event_id>[0-9]+)/create-division/$',
         views.admin_create_division, name='admin_create_division'),
     url(r'^admin/division/(?P<division_id>[0-9]+)/delete-division/$',
@@ -103,19 +117,27 @@ urlpatterns = [
     url(r'^(?P<event_id>[0-9]+)/quit/$', views.quit_league, name='quit_league'),
     url(r'^(?P<event_id>[0-9]+)/quit/(?P<user_id>[0-9]+)/$', views.quit_league, name='quit_league'),
 
-    url(r'^admin/create-all-profiles/$', views.create_all_profiles, name='create_all_profiles'),
+    url(r'^admin/create-profile/(?P<user_id>[0-9]+)$', views.create_profile, name='create_profile'),
     url(r'^admin/update-all-sgf-check-code/$',
         views.update_all_sgf_check_code, name='update_all_sgf_check_code'),
     url(
-        r'^admin/update_all_profile_ogs/$',
-        views.update_all_profile_ogs,
-        name='update_all_profile_ogs'
+        r'^admin/update_all_profiles/$',
+        views.update_all_profiles,
+        name='update_all_profiles'
     ),
     url(r'^admin/set-meijin/$', views.admin_set_meijin, name='set_meijin'),
+    url(r'^admin/download-ffg-tou/(?P<league_id>[0-9]+)/$', views.download_ffg_tou, name='download_ffg_tou'),
     url(
-        r'^profile/(?P<pk>[0-9]+)/update$',
+        r'^profile/update/$',
         views.ProfileUpdate.as_view(),
         name='profile_update'
     ),
-    url(r'discord-api/$', views.discord_api, name='discord_api')
+    url(
+        r'^profile/(?P<pk>[0-9]+)/update/$',
+        views.ProfileUpdate.as_view(),
+        name='profile_update'
+    ),
+    url(r'discord-api/$', views.discord_api, name='discord_api'),
+    url(r'games-api/$', views.games_datatable_api, name='games_api'),
+    url(r'user-leagues-manage/(?P<user_id>[0-9]+)/$', views.user_leagues_manage, name='user_leagues_manage'),
 ]

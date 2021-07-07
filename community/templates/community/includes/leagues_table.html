@@ -1,0 +1,39 @@
+{% load bootstrap3 league_tags %}
+{% load l10n i18n %}
+
+
+<table id="leagues-table" class="table">
+  <thead>
+    <th>{% trans "name" %}</th>
+    <th>{% trans "begin" %}</th>
+    <th>{% trans "ends" %}</th>
+    <th>{% trans "divisions" %}</th>
+    <th>{% trans "players" %}</th>
+    <th>{% trans "games" %}</th>
+    {% if admin %}
+    <th>{% trans "edit" %}</th>
+    <th> {% trans "copy" %}</th>
+    {% endif %}
+  </thead>
+  <tbody>
+    {% for league in leagues %}
+    <tr {% if league.is_open %}class="success"{% endif %}>
+      <td>
+        {{league | event_link}}
+        {% if  not league.is_public %}
+     <span class="glyphicon glyphicon-eye-close" aria-hidden="true"></span>
+       {% endif %}
+     </td>
+      <td>{{league.begin_time |date:"Y-m-d"}}</td>
+      <td>{{league.end_time |date:"Y-m-d"}}</td>
+      <td>{{ league.number_divisions }}</td>
+      <td>{{league.number_players}}</td>
+      <td>{{ league.number_games}}</td>
+      {% if admin %}
+      <td><a href= "{% url 'community:update_league' league.pk %}"> {% bootstrap_icon 'wrench' %} </a></td>
+      <td> <a href= "{% url 'community:create_league' community.pk league.pk %}"> <i class="fa fa-copy"></i> </a> </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+</tbody>
+</table>

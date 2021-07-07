@@ -1,0 +1,105 @@
+{% extends "full_width.html" %}
+{% load tz static i18n calendar_tags %}
+
+{% block extra_head_js %}
+<link rel='stylesheet' type="text/css" href="{%static 'fullcalendar/styles/fullcalendar.css'%}"/>
+<link rel='stylesheet' type="text/css" href="{%static 'fullcalendar/styles/rangeslider.css'%}"/>
+<link rel='stylesheet' type="text/css" href="{%static 'fullcalendar/styles/micromodal.css'%}"/>
+<link rel='stylesheet' type="text/css" href="{%static 'fullcalendar/styles/custom.css'%}"/>
+<script src='https://cdn.jsdelivr.net/npm/moment@2.27.0/min/moment.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.7.0/main.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.7.0/locales-all.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/moment@5.5.0/main.global.min.js'></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ion-rangeslider/2.3.1/js/ion.rangeSlider.min.js"></script>
+<script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+{% endblock %}
+
+{% block title %}Calendar{% endblock %}
+
+{% block heading %}
+{% get_current_timezone as TIME_ZONE %}
+<div class="page-header">
+  <h1>Calendar ({{TIME_ZONE}})</h1>
+</div>
+{%endblock%}
+
+{% block content %}
+<div class="row">
+
+  <!-- Calendar filtering menu -->
+  <div class="col-md-3">
+    <div class="panel panel-default">
+      {% if user.is_authenticated %}
+      <div class="panel-body">
+        {% checkbox label='Only me <i id="only-info" class="info glyphicon glyphicon-question-sign"></i>' id='only-user-filter' checked=False %}
+      </div>
+      {% endif %}
+      <div class="panel-heading">
+        <strong> Community</strong><i id="community-info" class="info glyphicon glyphicon-question-sign"></i>
+      </div>
+      <div class="panel-body">
+        {% checkbox label='Open Study Room' id='osr-filter' %}
+        {% for com in communities %}
+        {% checkbox label=com.name className='community-filter' value=com.pk %}
+        {% endfor %}
+      </div>
+      <div class="panel-heading">
+        <strong>League</strong><i id="league-info" class="info glyphicon glyphicon-question-sign"></i>
+      </div>
+      <div class="panel-body">
+        {% for league in leagues %}
+        {% checkbox label=league.name className='league-filter' value=league.pk %}
+        {% endfor %}
+      </div>
+       <div class="panel-heading">
+        <strong>Event</strong><i id="event-info" class="info glyphicon glyphicon-question-sign"></i>
+      </div>
+      <div class="panel-body">
+        {% checkbox label='Public' id='public-filter' %}
+        {% checkbox label='Appointment' id='appointment-filter' label_class='appointment-label' %}
+        {% if user.is_authenticated %}
+        {% checkbox label='Game request' id='game-request-filter' label_class='request-label' %}
+        {% checkbox label='Availability' id='av-event-filter' label_class='available-label' %}
+        {% endif %}
+        {% if user.is_authenticated %}
+        <hr>
+        {% checkbox label='Edit my availabilities <i id="available-info" class="info glyphicon glyphicon-question-sign"></i>' id='user-av-event-filter' checked=False label_class='user-available-label' %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar column -->
+  <div id="calendar-wrapper" class="col-md-9">
+    <div id="time-range-selector-wrapper">
+      <div >
+        <input
+          type="text"
+          id="time-range-selector"
+          class="hidden"
+          data-from="{{ start_time_range }}"
+          data-to="{{ end_time_range }}"/>
+      </div>
+    </div>
+    <div id="calendar"></div>
+  </div>
+
+  <!-- Modal forms -->
+  {% include 'fullcalendar/includes/modal.html' %}
+
+</div>
+{% endblock %}
+
+{% get_current_language as LANGUAGE_CODE %}
+{% block extra_js %}
+{{ calendar_data|json_script:"context-data" }}
+<script>{% include 'league/includes/ajax_setup.html' %}</script>
+<script src={% static 'fullcalendar/calendar.js' %}></script>
+<script>
+	$(document).ready(function() {
+    Calendar.initialize('{{LANGUAGE_CODE}}');
+  });
+</script>
+{% endblock %}

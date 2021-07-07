@@ -1,5 +1,10 @@
 {% extends "base.html" %}
-{% load static i18n wagtailcore_tags wagtailimages_tags puput_tags compress wagtailroutablepage_tags league_tags osr_tags%}
+{% load static i18n wagtailcore_tags wagtailimages_tags puput_tags compress wagtailroutablepage_tags league_tags osr_tags tz%}
+{% load comments comments_xtd %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/puput.css' %}"/>
+{% endblock %}
+
 {% block body_class %}template-homepage{% endblock %}
 
 
@@ -11,15 +16,43 @@
     <p>"{{quote.text}}"</p>
     <p class="pull-right"> {% if quote.source %}- {{quote.source}} {% endif %}</p>
   </div>
+  <div class="now-osr">
+  <div >
+  <a  href="https://discord.gg/b7meDjX" >
+     <i class="fab fa-discord "></i> {{discord_presence_count}}
+   </a> <span class="hidden-xs hidden-sm">users connected in our discord right now</span>
+   </div>
+   <div>
+   <a href="/league/">
+      <img src="https://openstudyroom.org/media/images/go_icon.original.png" style="height: 1.2em;padding-bottom:5px;"> {{games.total}}
+    </a> <span class="hidden-xs hidden-sm"> games played this month in {{n_leagues}} leagues</span>
+   </div>
+   </div>
 {% endblock %}
 
 {% block page_intro %}
 
 {% if request.user.is_authenticated and request.user.is_league_member %}
+<div class="container">
+  <div class="row">
 
+    <div class="col-md-4 ">
+      {% include 'wgo/tsumego.html' %}
+
+    </div>
+    <div class="col-md-4 ">
+
+      <div id="calendar"></div>
+    </div>
+  <div class="col-md-4">
+    {% include 'fullcalendar/includes/event_list.html'  %}
+  </div>
+</div>
+
+</div>
 {% else %}
   {% include "home/includes/homepage_intro.html"%}
-{% endif %}
+
 
 <div class="container">
   <div class="row">
@@ -30,12 +63,14 @@
 
 
     <div class="col-md-4">
-      {% include 'fullcalendar/includes/event_list.html'  %}
+      <div class="row">
+        {% include 'fullcalendar/includes/event_list.html'  %}
+      </div>
     </div>
   </div>
 
 </div>
-
+{% endif %}
 {% endblock %}
 
 
@@ -71,6 +106,17 @@
             <li>
                 <i class="fa fa-calendar"></i>
                 {{ entry.date|date:"DATE_FORMAT" }}
+            </li>
+            {% get_comment_count for home.streamfieldentrypage entry.pk as streamfield_comment_count %}
+            {% get_comment_count for entry as comment_count %}
+
+            <li>
+              <i class="fas fa-comments"></i>
+              {% if comment_count > streamfield_comment_count %}
+                {{ comment_count }}
+              {% else %}
+                {{streamfield_comment_count}}
+              {% endif %}
             </li>
           </ul>
           {% if entry.header_image %}
@@ -133,7 +179,7 @@
   <h3>OSR is made possible thanks to the support from friends and partners</h3>
   <div class="row">
     <div class="sponsors col-md-4 col-xs-6">
-    <a href="https://internetgoschool.com"><img class="img-responsive center-block" src="https://openstudyroom.org/media/images/logo.width-500.png" alt="Guo Juan's Internet Go School" ></a>
+    <a href="https://internetgoschool.com"><img class="img-responsive center-block" src="https://openstudyroom.org/media/images/online-banner-Small_01.original.png" alt="Guo Juan's Internet Go School" ></a>
   </div>
   <div class="sponsors col-md-4 col-xs-6">
     <a href="https://online-go.com/"><img class="img-responsive center-block" src="https://openstudyroom.org/media/images/ogs.original.png" alt="Online Go Server"></a>
@@ -145,9 +191,6 @@
     <a href="https://www.gokgs.com/"><img class="img-responsive center-block" src="https://openstudyroom.org/media/images/kgsLogo.original.png" alt="KGS Go Server"></a>
   </div>
 
-  <div class="sponsors col-md-4 col-xs-6">
-      <a  href="http://www.shawnsgogroup.com/index.php"><img class="img-responsive center-block" src="https://openstudyroom.org/media/images/halcy0n-clossiuspatreonbanner01white.width-500.png" alt="Clossius"></a>
-    </div>
 
     <div class="clearfix visible-xs-block"></div>
 
@@ -161,15 +204,7 @@
     </div>
   </div>
 
-  <div class="col-md-4 col-xs-6 ">
-<div class="sponsors panel panel-default">
-<a href="https://explorebaduk.wordpress.com/">
-<div class="panel-body">
-  Explore Baduk
-  </div>
-  </a>
-  </div>
-</div>
+
 <div class="clearfix visible-xs-block"></div>
 
 </div>
@@ -183,9 +218,7 @@
 <input type="hidden" name="cmd" value="_s-xclick">
 <input type="hidden" name="encrypted" value="-----BEGIN PKCS7-----MIIHNwYJKoZIhvcNAQcEoIIHKDCCByQCAQExggEwMIIBLAIBADCBlDCBjjELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtQYXlQYWwgSW5jLjETMBEGA1UECxQKbGl2ZV9jZXJ0czERMA8GA1UEAxQIbGl2ZV9hcGkxHDAaBgkqhkiG9w0BCQEWDXJlQHBheXBhbC5jb20CAQAwDQYJKoZIhvcNAQEBBQAEgYB3HHu9uYTpgSJ52WNFCr7ikqpyb8J8G+Rax8euLdaj0PM+CBh6E3lGxTPNExKN5z6fN7o4CfrkQz5VfK32nYcwGXJuRglgdIuGOVEElphvYlkRQhcrDNtjCNOGS51g2hLB4UbYt8XlsGOf7I3/0x0CfJr7JRJQUhXwFLvvafvGajELMAkGBSsOAwIaBQAwgbQGCSqGSIb3DQEHATAUBggqhkiG9w0DBwQIPtsP6MyqksyAgZA1CcMBuR5pkuAYvQS9qbq079XJq7MgAbpEWXjpanqFMNcKBWTiOD4mRZ1c+z9Gsn/Vv24VGU7sAqpjbRLs1hiHJd4qWcCodk/f1wxtbld5WSenj5FLmJO22ygiQq9TYiJeF6J1XgojSM+FV8rrXqkLomSdD8BAeRzCwogrCrZGmhiqrXoP/W6mWLdBxi0u6SigggOHMIIDgzCCAuygAwIBAgIBADANBgkqhkiG9w0BAQUFADCBjjELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtQYXlQYWwgSW5jLjETMBEGA1UECxQKbGl2ZV9jZXJ0czERMA8GA1UEAxQIbGl2ZV9hcGkxHDAaBgkqhkiG9w0BCQEWDXJlQHBheXBhbC5jb20wHhcNMDQwMjEzMTAxMzE1WhcNMzUwMjEzMTAxMzE1WjCBjjELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRQwEgYDVQQKEwtQYXlQYWwgSW5jLjETMBEGA1UECxQKbGl2ZV9jZXJ0czERMA8GA1UEAxQIbGl2ZV9hcGkxHDAaBgkqhkiG9w0BCQEWDXJlQHBheXBhbC5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMFHTt38RMxLXJyO2SmS+Ndl72T7oKJ4u4uw+6awntALWh03PewmIJuzbALScsTS4sZoS1fKciBGoh11gIfHzylvkdNe/hJl66/RGqrj5rFb08sAABNTzDTiqqNpJeBsYs/c2aiGozptX2RlnBktH+SUNpAajW724Nv2Wvhif6sFAgMBAAGjge4wgeswHQYDVR0OBBYEFJaffLvGbxe9WT9S1wob7BDWZJRrMIG7BgNVHSMEgbMwgbCAFJaffLvGbxe9WT9S1wob7BDWZJRroYGUpIGRMIGOMQswCQYDVQQGEwJVUzELMAkGA1UECBMCQ0ExFjAUBgNVBAcTDU1vdW50YWluIFZpZXcxFDASBgNVBAoTC1BheVBhbCBJbmMuMRMwEQYDVQQLFApsaXZlX2NlcnRzMREwDwYDVQQDFAhsaXZlX2FwaTEcMBoGCSqGSIb3DQEJARYNcmVAcGF5cGFsLmNvbYIBADAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBBQUAA4GBAIFfOlaagFrl71+jq6OKidbWFSE+Q4FqROvdgIONth+8kSK//Y/4ihuE4Ymvzn5ceE3S/iBSQQMjyvb+s2TWbQYDwcp129OPIbD9epdr4tJOUNiSojw7BHwYRiPh58S1xGlFgHFXwrEBb3dgNbMUa+u4qectsMAXpVHnD9wIyfmHMYIBmjCCAZYCAQEwgZQwgY4xCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UEBxMNTW91bnRhaW4gVmlldzEUMBIGA1UEChMLUGF5UGFsIEluYy4xEzARBgNVBAsUCmxpdmVfY2VydHMxETAPBgNVBAMUCGxpdmVfYXBpMRwwGgYJKoZIhvcNAQkBFg1yZUBwYXlwYWwuY29tAgEAMAkGBSsOAwIaBQCgXTAYBgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSqGSIb3DQEJBTEPFw0xNzA2MjAwOTMxMjdaMCMGCSqGSIb3DQEJBDEWBBQXv71E3+Z8eJ1iyABSFnYOOtBwtzANBgkqhkiG9w0BAQEFAASBgLB5n7DGGaMEFYKPU6Zu90XuOG+5sD/bUpQJfTA2ofSSuZQxXu2w7hdBqnDn5467jB8TgRfjISrb3iJRhrEiGvOAYrigsVdSk/nvrscbjVyS90Hb2nYMF8wmdCktD6IRSEznqecY/GBoLHAxG0coBZOp8aTj+/K8oTLDiDoLDW9a-----END PKCS7-----
 ">
-
-    <button type="submit" name="submit" class="btn btn-primary text-uppercase btn-lg" style="font-size: 18px;">Donate <span class="glyphicon glyphicon-heart" aria-hidden="true"></span></button>
-
+  <button type="submit" name="submit" class="btn btn-primary text-uppercase btn-lg" style="font-size: 18px;">Donate <span class="glyphicon glyphicon-heart" aria-hidden="true"></span></button>
 
 </form>
 </div>
@@ -206,6 +239,21 @@
 
 
 {% block extra_js %}
+{% if request.user.is_authenticated and request.user.is_league_member %}
+  {% get_current_timezone as TIME_ZONE %}
+  {% get_current_language as LANGUAGE_CODE %}
+  <link rel='stylesheet' href='https://cdn.jsdelivr.net/qtip2/3.0.3/basic/jquery.qtip.min.css'/>
+  <script src='https://cdn.jsdelivr.net/qtip2/3.0.3/basic/jquery.qtip.min.js'></script>
+  <link rel='stylesheet' type="text/css" href="{%static 'fullcalendar/calendar.css'%}"/>
+
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js'></script>
+  <script src='//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.4.0/fullcalendar.min.js'></script>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.6.1/locale-all.js'></script>
+  <script src={%static 'fullcalendar/calendar_front_page.js'%}></script>
+  <script src={%static 'wgo/tsumego.js'%}></script>
+
+  <link rel='stylesheet' href='//cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.4.0/fullcalendar.min.css' />
+  {% endif %}
 <script>
 
 $(document).ready(function() {
@@ -215,6 +263,13 @@ $(document).ready(function() {
     }).get()
     maxHeight = Math.max.apply(null, heights);
     $(".col-equal").height(maxHeight);
+    {% if request.user.is_authenticated and request.user.is_league_member %}
+
+    load_calendar_member('{{TIME_ZONE}}', '{{LANGUAGE_CODE}}', 0, 24);
+    {% endif %}
 });
  </script>
+
+
+
 {% endblock %}
